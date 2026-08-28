@@ -1,0 +1,30 @@
+/* 宠物动作与庆祝动画（task-011）
+   宠物动作用 emoji + CSS keyframes 实现，零外部资源，首次加载即缓存 */
+
+@keyframes anim-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+@keyframes anim-wiggle {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+}
+@keyframes anim-spin {
+  from { transform: rotate(0); }
+  to { transform: rotate(360deg); }
+}
+@keyframes anim-sleep {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(8px) scale(0.96); }
+}
+@keyframes anim-pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.anim-bounce { animation: anim-bounce 0.6s ease-in-out infinite; }
+.anim-wiggle { animation: anim-wiggle 0.4s ease-in-out infinite; }
+.anim-spin { animation: anim-spin 1s linear infinite; }
+.anim-sleep { animation: anim-sleep 2s ease-in-out infinite; }
+.anim-pop { animation: anim-pop 0.4s ease-out; }

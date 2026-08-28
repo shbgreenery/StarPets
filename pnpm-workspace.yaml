@@ -1,0 +1,3 @@
+# pnpm 11 项目级设置：允许以下依赖运行安装脚本（下载/编译原生二进制）
+allowBuilds:
+  esbuild: true

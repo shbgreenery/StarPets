@@ -1,0 +1,4 @@
+{
+  // 由 `nuxt prepare` 生成的 .nuxt/tsconfig.json 提供完整的路径别名与类型
+  "extends": "./.nuxt/tsconfig.json"
+}

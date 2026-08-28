@@ -1,0 +1,162 @@
+/* ============================================================
+   全局设计 token（美术风格待定，后续可整体替换变量值）
+   PRD 4.1 约束：大按钮 ≥44px（推荐 48px）；给孩子看的内容 ≥20pt
+   注：1pt ≈ 1.333px，故 20pt ≈ 26.67px
+   ============================================================ */
+:root {
+  /* 配色 —— 亲子温暖风（占位，可换） */
+  --color-primary: #f59e0b;
+  --color-primary-soft: #fef3c7;
+  --color-bg: #fdf8f0;
+  --color-surface: #ffffff;
+  --color-text: #1e293b;
+  --color-text-muted: #64748b;
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+  --color-warning: #f97316;
+  --color-border: #e9edf4;
+
+  /* 间距 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  /* 圆角 */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+
+  /* 字号（给孩子看的 ≥20pt） */
+  --font-display: 28px; /* 宠物名、星星数 */
+  --font-large: 27px;   /* 状态数值（≈20pt） */
+  --font-base: 16px;
+  --font-small: 14px;
+
+  /* 触控尺寸（≥44px，推荐 48px） */
+  --touch-target: 48px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--color-text);
+  background: var(--color-bg);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- App 骨架（移动端优先，桌面居中） ---------- */
+.app-shell {
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+}
+
+.app-main {
+  flex: 1;
+  padding: var(--space-4);
+  /* 给底部 Tab 留出空间 */
+  padding-bottom: calc(var(--touch-target) + var(--space-6));
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.page-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+/* ---------- 底部 Tab ---------- */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.tab-item {
+  flex: 1;
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--color-text-muted);
+  font-size: var(--font-small);
+}
+
+.tab-item.router-link-active {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ---------- 基础类：大按钮（≥44px，推荐 48px） ---------- */
+.btn-touch {
+  min-height: var(--touch-target);
+  min-width: var(--touch-target);
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0 var(--space-4);
+  font-size: var(--font-base);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
+}
+
+/* ---------- 基础类：大字号（给孩子看的 ≥20pt） ---------- */
+.text-display {
+  font-size: var(--font-display);
+  font-weight: 700;
+}
+
+.text-large {
+  font-size: var(--font-large);
+  font-weight: 600;
+}
+
+.text-muted {
+  color: var(--color-text-muted);
+  font-size: var(--font-base);
+}
+
+/* ---------- 响应式断点 ---------- */
+@media (min-width: 768px) {
+  .app-shell {
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.08);
+  }
+}
