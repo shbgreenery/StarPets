@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>产品需求文档 - 成长伙伴</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #f7f9fc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 30px 20px;
+            color: #1e293b;
+            line-height: 1.7;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            padding: 50px 60px;
+        }
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #0f172a;
+            letter-spacing: -0.5px;
+        }
+        .subhead {
+            color: #475569;
+            font-size: 18px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9edf4;
+            padding-bottom: 20px;
+        }
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            background: #f1f5f9;
+            border-radius: 16px;
+            padding: 16px 24px;
+            margin-bottom: 30px;
+            font-size: 15px;
+        }
+        .meta-item {
+            display: flex;
+            align-items: baseline;
+            gap: 6px;
+        }
+        .meta-item strong {
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .tag {
+            background: #dbeafe;
+            color: #1e4a8b;
+            font-weight: 600;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-block;
+        }
+        h2 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-top: 48px;
+            margin-bottom: 16px;
+            padding-top: 8px;
+            border-top: 2px solid #e9edf4;
+            padding-bottom: 8px;
+            color: #0f172a;
+        }
+        h2:first-of-type {
+            border-top: none;
+            margin-top: 0;
+        }
+        h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 12px;
+            color: #1e293b;
+        }
+        h4 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            color: #1e293b;
+        }
+        p {
+            margin-bottom: 14px;
+        }
+        ul, ol {
+            margin: 10px 0 18px 24px;
+        }
+        li {
+            margin-bottom: 6px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0 24px;
+            font-size: 15px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        th {
+            background: #f1f5f9;
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 2px solid #d1d9e6;
+        }
+        td {
+            padding: 11px 16px;
+            border-bottom: 1px solid #e9edf4;
+            vertical-align: top;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .highlight-box {
+            background: #f8fafc;
+            border-left: 4px solid #3b82f6;
+            padding: 16px 22px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .highlight-box.green {
+            border-left-color: #22c55e;
+            background: #f0fdf4;
+        }
+        .highlight-box.amber {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 18px 22px;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-family: "SF Mono", "Fira Code", monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 16px 0 24px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .slogan {
+            font-size: 20px;
+            font-weight: 500;
+            color: #2563eb;
+            background: #eff6ff;
+            padding: 10px 20px;
+            border-radius: 40px;
+            display: inline-block;
+            margin: 6px 0 12px;
+        }
+        hr {
+            border: none;
+            border-top: 2px dashed #d1d9e6;
+            margin: 40px 0;
+        }
+        .toc {
+            background: #f8fafc;
+            padding: 18px 24px;
+            border-radius: 16px;
+            margin-bottom: 32px;
+        }
+        .toc h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .toc ul {
+            columns: 2;
+            column-gap: 30px;
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+        }
+        .toc li {
+            margin-bottom: 4px;
+            font-size: 15px;
+        }
+        .toc a {
+            text-decoration: none;
+            color: #2563eb;
+        }
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        .badge {
+            background: #dbeafe;
+            padding: 1px 10px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1e4a8b;
+            display: inline-block;
+            margin-right: 4px;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 16px;
+            }
+            .toc ul {
+                columns: 1;
+            }
+            .meta {
+                flex-direction: column;
+                gap: 8px;
+            }
+            h1 {
+                font-size: 26px;
+            }
+        }
+        .footer-note {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
+            margin-top: 40px;
+            border-top: 1px solid #e9edf4;
+            padding-top: 24px;
+        }
+        .appendix-table {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="top">
+
+    <h1>🌱 成长伙伴 · 产品需求文档</h1>
+    <div class="subhead">一款纯免费、零内购的亲子任务管理与虚拟宠物养成工具</div>
+
+    <div class="meta">
+        <span class="meta-item"><strong>文档版本</strong> V1.0</span>
+        <span class="meta-item"><strong>更新日期</strong> 2026年8月28日</span>
+        <span class="meta-item"><strong>产品状态</strong> <span class="tag">MVP 规划</span></span>
+        <span class="meta-item"><strong>Slogan</strong> “养好习惯，养大伙伴”</span>
+    </div>
+
+    <!-- 目录 -->
+    <div class="toc">
+        <h3>📖 目录</h3>
+        <ul>
+            <li><a href="#sec1">一、产品背景与目标</a></li>
+            <li><a href="#sec2">二、用户角色与场景</a></li>
+            <li><a href="#sec3">三、功能需求详述</a></li>
+            <li><a href="#sec4">四、非功能性需求</a></li>
+            <li><a href="#sec5">五、运营与商业模式</a></li>
+            <li><a href="#sec6">六、数据埋点建议</a></li>
+            <li><a href="#sec7">七、版本规划与里程碑</a></li>
+            <li><a href="#sec8">八、风险与应对</a></li>
+            <li><a href="#sec9">九、待定事项</a></li>
+            <li><a href="#sec10">十、附录：核心数值速查表</a></li>
+        </ul>
+    </div>
+
+    <!-- ================================================= -->
+    <h2 id="sec1">一、产品背景与目标</h2>
+
+    <h3>1.1 要解决的问题</h3>
+    <ul>
+        <li>家长难以持续、有趣地激励孩子完成日常任务（刷牙、收拾玩具、练琴等）。</li>
+        <li>现有同类产品存在内购氪金、宠物死亡机制，给孩子带来金钱压力和心理负担。</li>
+        <li>家长需要一个<strong>纯工具属性、无商业干扰</strong>的亲子互动介质。</li>
+    </ul>
+
+    <h3>1.2 产品目标</h3>
+    <ul>
+        <li><strong>MVP阶段</strong>：验证“任务→星星→宠物养成”闭环的吸引力和留存率。</li>
+        <li><strong>增长阶段</strong>：通过口碑传播积累10万+家庭用户。</li>
+        <li><strong>长期愿景</strong>：成为国内家长首选的“零成本习惯养成工具”。</li>
+    </ul>
+
+    <h3>1.3 差异化卖点</h3>
+    <table>
+        <thead>
+            <tr><th>维度</th><th>竞品常见做法</th><th>我们的做法</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><strong>付费模式</strong></td><td>订阅/内购/会员</td><td><span class="badge">完全免费</span>，无任何金钱充值入口</td></tr>
+            <tr><td><strong>宠物死亡</strong></td><td>可能饿死/病死，需氪金复活</td><td><span class="badge">永不死亡</span>，数值归零时进入“冬眠”，用任务星星购买道具唤醒</td></tr>
+            <tr><td><strong>家长定位</strong></td><td>管理者/监督者</td><td><span class="badge">裁判+讲解员</span>，强调亲子共看共讲</td></tr>
+            <tr><td><strong>商业变现</strong></td><td>向家长收费</td><td>后续通过<strong>无干扰的电商场景推荐</strong>（CPS）变现</td></tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2 id="sec2">二、用户角色与场景</h2>
+    <table>
+        <thead>
+            <tr><th>角色</th><th>操作端</th><th>核心行为</th><th>典型场景</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>家长</strong></td>
+                <td>手机（App/小程序）</td>
+                <td>创建任务、确认完成、打1-5星、购买道具、展示宠物、讲解故事</td>
+                <td>孩子练琴结束，家长拿出手机点击“完成”并打4星，举给孩子看宠物转圈吃蛋糕的动画</td>
+            </tr>
+            <tr>
+                <td><strong>孩子</strong></td>
+                <td>无操作端（纯线下观察与口述）</td>
+                <td>执行任务、观看宠物反馈、口述决策（起名、选宠物、选装饰）</td>
+                <td>坐在家长旁边，指着屏幕说“我要养这只小猫咪”，家长代为操作</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2 id="sec3">三、功能需求详述</h2>
+
+    <h3>3.1 宠物领养与命名仪式（首次启动）</h3>
+    <p><strong>触发条件</strong>：用户首次打开App。</p>
+    <p><strong>流程</strong>：</p>
+    <ol>
+        <li><strong>选择宠物</strong>：屏幕展示3只不同风格宠物（建议：小恐龙、小猫咪、小企鹅），孩子口述选择，家长点击确认。</li>
+        <li><strong>命名仪式</strong>：弹出命名输入框，家长输入孩子口述的名字（如“小毛球”）。
+            <ul>
+                <li><strong>限制</strong>：2-6个中文字符。</li>
+                <li><strong>确认后弹窗</strong>：“【名字】将成为你独一无二的伙伴，确定吗？”（增加仪式感）</li>
+            </ul>
+        </li>
+        <li><strong>初始状态</strong>：宠物三维状态（饱腹/清洁/快乐）均从 <strong>50%</strong> 开始。</li>
+        <li><strong>新手引导</strong>：自动弹出3步引导页，告诉家长如何创建任务、打星、购买道具。</li>
+    </ol>
+    <div class="highlight-box">
+        <strong>🎯 交互要求</strong>：命名过程要<strong>缓慢且有仪式感</strong>，比如输入框带闪烁光标和星星飘落背景，给家长留足“念给孩子听”的时间。
+    </div>
+
+    <h3>3.2 任务系统（家长端）</h3>
+    <p><strong>入口</strong>：底部Tab栏“任务” &gt; “今日任务”。</p>
+
+    <h4>3.2.1 任务类型</h4>
+    <table>
+        <thead><tr><th>类型</th><th>说明</th><th>示例</th></tr></thead>
+        <tbody>
+            <tr><td><strong>一次性任务</strong></td><td>单次有效，完成后不会重复出现</td><td>“今天把玩具全部收进箱子”</td></tr>
+            <tr><td><strong>每日任务</strong></td><td>每天自动重置出现</td><td>“早晚刷牙”</td></tr>
+            <tr><td><strong>每周任务</strong></td><td>选定周几重复出现</td><td>“每周六整理书桌”</td></tr>
+        </tbody>
+    </table>
+
+    <h4>3.2.2 创建任务</h4>
+    <p>点击“+”按钮，进入创建页：</p>
+    <table>
+        <thead><tr><th>字段</th><th>必填</th><th>说明</th></tr></thead>
+        <tbody>
+            <tr><td>任务标题</td><td>✅</td><td>限20字，如“自己穿袜子”</td></tr>
+            <tr><td>任务描述</td><td>❌</td><td>选填，家长可记录具体要求，如“不要穿反了哦”</td></tr>
+            <tr><td>任务类型</td><td>✅</td><td>下拉选择：一次性/每日/每周</td></tr>
+            <tr><td>生效时间</td><td>✅</td><td>每日任务选时间（如每天19:00）；每周任务选周几</td></tr>
+            <tr><td>关联宠物</td><td>❌</td><td>默认奖励给当前选中的宠物，也可指定“喂给宠物1/2/3”</td></tr>
+        </tbody>
+    </table>
+
+    <h4>3.2.3 任务看板</h4>
+    <ul>
+        <li>按<strong>日期</strong>分组展示“今日待办”。</li>
+        <li>已完成任务显示为<strong>灰色对勾</strong>，并标注“+X星”。</li>
+        <li>逾期未完成的任务（已过生效时间）显示<strong>橙色圆点</strong>提醒家长。</li>
+    </ul>
+
+    <h4>3.2.4 任务模板库（提高效率）</h4>
+    <p>内置20个高频任务模板，支持一键添加：</p>
+    <table>
+        <thead><tr><th>分类</th><th>模板示例</th></tr></thead>
+        <tbody>
+            <tr><td><strong>生活习惯</strong></td><td>早晚刷牙、自己穿衣服、按时睡觉、自己收拾书包</td></tr>
+            <tr><td><strong>家务劳动</strong></td><td>收拾玩具、摆碗筷、叠被子、擦桌子</td></tr>
+            <tr><td><strong>学习习惯</strong></td><td>练琴30分钟、阅读20分钟、完成作业、练字一页</td></tr>
+            <tr><td><strong>品德习惯</strong></td><td>主动打招呼、分享玩具、不说脏话、帮助家人</td></tr>
+        </tbody>
+    </table>
+    <p><strong>交互</strong>：点击“从模板添加”，弹窗勾选所需任务，一键全部加入今日任务列表。</p>
+
+    <h3>3.3 星级评价系统（核心交互）</h3>
+    <p><strong>触发</strong>：家长点击任务卡片上的“确认完成”按钮。</p>
+    <p><strong>流程</strong>：</p>
+    <ol>
+        <li>弹出<strong>5颗大星星</strong>（横向排布，按钮直径至少48px，适合家长手指点按）。</li>
+        <li>家长点击第N颗星，前N颗亮起（如点第4颗，亮4颗，第5颗灰暗）。</li>
+        <li>点击“确认发放”按钮，完成评价。</li>
+    </ol>
+    <p><strong>评级参考标准</strong>（在打星界面底部以小字展示）：</p>
+    <ul>
+        <li>⭐ 1星：勉强完成，需多次催促</li>
+        <li>⭐⭐ 2星：按时完成，质量一般</li>
+        <li>⭐⭐⭐ 3星：顺利完成，态度端正 <strong>（基准线）</strong></li>
+        <li>⭐⭐⭐⭐ 4星：完成得很好，超出预期</li>
+        <li>⭐⭐⭐⭐⭐ 5星：表现惊艳，有明显进步</li>
+    </ul>
+    <p><strong>反馈</strong>：</p>
+    <ul>
+        <li>确认后，<strong>全屏播放3-5秒庆祝动画</strong>（如撒花/烟花/宠物转圈）。</li>
+        <li>星星数量实时更新到总余额。</li>
+        <li>若该任务关联了宠物，动画中宠物出现并做出高兴动作。</li>
+    </ul>
+
+    <h3>3.4 宠物系统（情感纽带）</h3>
+    <p><strong>入口</strong>：底部Tab栏“宠物” &gt; 主展示页。</p>
+
+    <h4>3.4.1 主展示页布局</h4>
+    <div class="code-block">
++------------------------------------------+
+|  [←]  小毛球  Lv.5  ⭐⭐⭐⭐⭐  [→]      |  ← 顶部：宠物名 + 等级 + 切换箭头
+|                                            |
+|              （宠物动态展示区）              |  ← 中间：宠物动画（趴/坐/跳/睡）
+|              🐱  （各种动作）               |
+|                                            |
+|   🍗 ████████░░ 80%   😊 饱饱             |  ← 三维状态条（表情+进度条）
+|   🧼 ██████░░░░ 60%   😊 干净             |
+|   🎈 █████████░ 90%   😊 开心             |
+|                                            |
+|   ⭐ 当前星星：25颗                        |  ← 星星余额
+|   🌱 成长值：30/100  (Lv.5 → Lv.6)        |  ← 经验进度条（重点突出）
+|                                            |
+|   [🏪 商店]  [📋 任务]  [📊 成长记录]     |  ← 底部操作按钮
++------------------------------------------+
+    </div>
+
+    <h4>3.4.2 多宠物管理（最多3只）</h4>
+    <ul>
+        <li><strong>切换方式</strong>：主展示页顶部左右箭头切换，或下拉菜单选择。</li>
+        <li><strong>适用场景</strong>：二胎家庭，或一个孩子想养多只不同宠物。</li>
+        <li><strong>任务关联</strong>：创建任务时可选择“将星星喂给哪只宠物”，支持单选或多选（多选时星星均分）。</li>
+        <li><strong>独立性</strong>：每只宠物的三维状态、成长值、等级、商店解锁进度<strong>完全独立</strong>。</li>
+    </ul>
+
+    <h4>3.4.3 宠物状态表现</h4>
+    <p>三维数值变化时，宠物动画和表情同步变化：</p>
+    <table>
+        <thead><tr><th>状态区间</th><th>表情/动画</th><th>家长提示语参考</th></tr></thead>
+        <tbody>
+            <tr><td>80%-100%</td><td>😄 跳跳/转圈/冒音符</td><td>“它今天好开心呀！”</td></tr>
+            <tr><td>50%-79%</td><td>🙂 安静坐着</td><td>“它今天还行，可以再吃点好的。”</td></tr>
+            <tr><td>30%-49%</td><td>😕 耷拉耳朵/趴着</td><td>“它有点饿了，我们赚星星给它买点吃的吧。”</td></tr>
+            <tr><td>1%-29%</td><td>😢 头顶乌云/落寞</td><td>“它好饿好难受，快救救它！”</td></tr>
+            <tr><td>0%（冻结/冬眠）</td><td>😴 蜷缩睡觉，头顶Zzz</td><td>“[名字]累坏了，正在睡大觉呢。攒3颗星买个醒醒果吧。”</td></tr>
+        </tbody>
+    </table>
+    <div class="highlight-box green">
+        <strong>💚 特别说明</strong>：宠物<strong>永远不会死亡</strong>。数值降到0%时自动进入“冬眠”状态，无任何负面惩罚，仅需用星星购买道具唤醒。
+    </div>
+
+    <h3>3.5 三维状态与成长值系统（核心算法）</h3>
+
+    <h4>3.5.1 三维状态（饱腹/清洁/快乐）</h4>
+    <table>
+        <thead><tr><th>属性</th><th>图标</th><th>自然衰减速度</th><th>衰减说明</th></tr></thead>
+        <tbody>
+            <tr><td><strong>饱腹度</strong></td><td>🍗</td><td>每天 <strong>-15%</strong></td><td>每天凌晨0点结算时衰减</td></tr>
+            <tr><td><strong>清洁度</strong></td><td>🧼</td><td>每天 <strong>-10%</strong></td><td>每天凌晨0点结算时衰减</td></tr>
+            <tr><td><strong>快乐度</strong></td><td>🎈</td><td>每天 <strong>-12%</strong></td><td>每天凌晨0点结算时衰减</td></tr>
+        </tbody>
+    </table>
+    <p>衰减下限为0%，不会为负。</p>
+
+    <h4>3.5.2 成长值结算（每日凌晨0点自动执行）</h4>
+    <p>系统根据当日三维状态的平均分，结算“成长值”（即经验值）：</p>
+    <table>
+        <thead><tr><th>当日平均分区间</th><th>获得成长值</th><th>家长端提示语（可念给孩子听）</th></tr></thead>
+        <tbody>
+            <tr><td><strong>≥ 80%</strong>（优秀照顾）</td><td><strong>+10</strong></td><td>“你把[宠物名]照顾得太好啦，它长高了一大截！”</td></tr>
+            <tr><td><strong>50% - 79%</strong>（基础照顾）</td><td><strong>+5</strong></td><td>“今天喂得不错，明天记得给它洗个澡就更棒啦。”</td></tr>
+            <tr><td><strong>&lt; 50%</strong>（疏于照顾）</td><td><strong>+1</strong>（保底）</td><td>“[宠物名]今天有点饿，明天我们多赚星星喂饱它吧。”</td></tr>
+        </tbody>
+    </table>
+    <div class="highlight-box green">
+        <strong>✅ 注意</strong>：<strong>绝不扣减成长值</strong>。最低也有+1保底，避免孩子因中断使用而产生挫败感。
+    </div>
+
+    <h4>3.5.3 等级与升级</h4>
+    <ul>
+        <li><strong>升级所需经验</strong>：【建议值】<code>当前等级 × 20</code>（Lv.1→Lv.2需20点，Lv.2→Lv.3需40点，以此类推）。</li>
+        <li><strong>升级反馈</strong>：达到升级所需经验时，<strong>全屏播放升级动画</strong>（约5秒，如宠物被光圈包裹、变大、闪亮），并弹窗提示：“[宠物名]升级啦！Lv.X → Lv.X+1，商店解锁了新物品！”</li>
+    </ul>
+
+    <h3>3.6 星星商店（货币消耗）</h3>
+    <p><strong>入口</strong>：宠物主展示页底部“商店”按钮。</p>
+
+    <h4>3.6.1 消耗品类（提升三维数值）</h4>
+    <table>
+        <thead><tr><th>类别</th><th>道具示例</th><th>功能</th><th>建议售价</th></tr></thead>
+        <tbody>
+            <tr><td><strong>食物</strong></td><td>牛奶、小鱼干、水果拼盘</td><td>饱腹度 <strong>+30%</strong></td><td>2 星</td></tr>
+            <tr><td><strong>清洁</strong></td><td>小毛巾、泡泡浴液</td><td>清洁度 <strong>+30%</strong></td><td>2 星</td></tr>
+            <tr><td><strong>玩具</strong></td><td>毛线球、小皮球、积木</td><td>快乐度 <strong>+30%</strong></td><td>3 星</td></tr>
+            <tr><td><strong>豪华大餐</strong>（Lv.8解锁）</td><td>三文鱼、大蛋糕</td><td>饱腹度 <strong>+50%</strong></td><td>5 星</td></tr>
+            <tr><td><strong>魔法醒醒果</strong>（特殊）</td><td>魔法醒醒果</td><td>将冬眠宠物<strong>唤醒</strong>，三维恢复至30%</td><td>3 星</td></tr>
+        </tbody>
+    </table>
+    <p><strong>交互</strong>：点击道具 → 弹窗确认“确定要花X颗星购买吗？” → 确认后星星扣除 → 宠物播放使用动画（吃/洗/玩） → 对应数值条上涨动画。</p>
+
+    <h4>3.6.2 限时装饰类（核心驱动力）</h4>
+    <table>
+        <thead><tr><th>解锁等级</th><th>装饰类型</th><th>有效期</th><th>建议售价</th><th>举例</th></tr></thead>
+        <tbody>
+            <tr><td>Lv.5</td><td>初级头饰</td><td>3天</td><td>5 星</td><td>小礼帽、蝴蝶结、墨镜</td></tr>
+            <tr><td>Lv.10</td><td>中级套装</td><td>5天</td><td>15 星</td><td>小西装、公主裙、超人披风</td></tr>
+            <tr><td>Lv.15</td><td>动态背景</td><td>永久</td><td>30 星</td><td>星空背景、花园背景、海底世界</td></tr>
+        </tbody>
+    </table>
+    <p><strong>装饰交互</strong>：</p>
+    <ul>
+        <li>购买后自动穿戴，宠物显示新形象。</li>
+        <li>到期后装饰自动卸下，宠物显示<strong>失落小动画</strong>（如帽子飞走）。</li>
+        <li>家长可随时在“已拥有”列表中查看所有装饰及其剩余有效期。</li>
+    </ul>
+
+    <h4>3.6.3 商店刷新策略</h4>
+    <ul>
+        <li><strong>每日特惠</strong>：每天随机1个消耗品打8折（如今天牛奶只需1星），页面顶部显示“今日特惠！”标签。</li>
+        <li><strong>限时绝版</strong>：节日（六一、国庆、新年）上架1款限定装饰，有效期仅7天兑换，过期下架。</li>
+    </ul>
+    <div class="highlight-box amber">
+        <strong>⚠️ 重要原则</strong>：商店内<strong>没有任何用现实货币购买的入口</strong>。所有道具均用星星兑换。
+    </div>
+
+    <h3>3.7 宠物冻结/冬眠与唤醒机制（核心温情设计）</h3>
+    <p><strong>触发条件</strong>：任何一项三维状态数值降至 <strong>0%</strong> 时，宠物自动进入冬眠状态。</p>
+    <p><strong>冬眠表现</strong>：</p>
+    <ul>
+        <li>宠物蜷缩在屏幕中央，头顶显示“Zzz”气泡。</li>
+        <li>三维状态条全部清空，显示“💤 沉睡中”。</li>
+        <li>页面提示语：“[宠物名]玩累了，正在呼呼大睡。攒够3颗星星，买一颗‘魔法醒醒果’就能叫醒它哦！”</li>
+    </ul>
+    <p><strong>唤醒流程</strong>：</p>
+    <ol>
+        <li>家长点击“去商店”或“购买醒醒果”。</li>
+        <li>确认花3颗星星购买“魔法醒醒果”。</li>
+        <li>点击“使用”，播放唤醒动画（约5秒）：醒醒果飞入宠物嘴中 → 宠物打哈欠 → 伸懒腰 → 跳起来转圈。</li>
+        <li>宠物恢复至清醒状态，三维状态自动恢复至 <strong>30%</strong>（饱腹30/清洁30/快乐30）。</li>
+        <li>额外赠送一个“欢迎回来”小装饰（如一顶睡帽），有效期1天，增加仪式感。</li>
+    </ol>
+    <p><strong>防滥用与长停用处理</strong>：</p>
+    <ul>
+        <li>如果宠物连续冬眠 <strong>超过7天</strong>（家长确实很久未使用），系统不会删除任何数据。</li>
+        <li>家长再次打开时，推送一条温馨提示：“[宠物名]等你很久啦，它好想你！攒点星星给它买个醒醒果吧。”</li>
+        <li><strong>不设任何惩罚性措施</strong>（如扣减成长值、删除装饰等）。</li>
+    </ul>
+
+    <h3>3.8 家长控制面板（后台）</h3>
+    <p><strong>入口</strong>：底部Tab栏“我的” &gt; “家长设置”（需简单密码/PIN码验证）。</p>
+    <table>
+        <thead><tr><th>功能</th><th>说明</th></tr></thead>
+        <tbody>
+            <tr><td><strong>多孩/多宠物管理</strong></td><td>开启/关闭“多宠物模式”（最多3只）；重置某只宠物的数据（需二次确认）</td></tr>
+            <tr><td><strong>宠物改名</strong></td><td>允许重置宠物名字，需输入当前名字验证 + 二次确认（防止孩子误操作）</td></tr>
+            <tr><td><strong>重置所有数据</strong></td><td>清空所有任务、星星、宠物数据（需输入家长密码 + 两次确认）</td></tr>
+            <tr><td><strong>任务模板管理</strong></td><td>自定义添加/删除任务模板</td></tr>
+            <tr><td><strong>每日结算时间</strong></td><td>默认凌晨0点，支持家长自定义（如晚上9点孩子睡觉时结算）</td></tr>
+            <tr><td><strong>冬眠提示开关</strong></td><td>开启后，宠物进入冬眠时向家长手机推送一条本地通知</td></tr>
+            <tr><td><strong>电商推荐开关</strong></td><td>家长可选择是否显示场景化商品推荐（默认开启，可关闭）</td></tr>
+        </tbody>
+    </table>
+
+    <h3>3.9 成长记录（数据看板）</h3>
+    <p><strong>入口</strong>：宠物主展示页底部“成长记录”按钮。</p>
+    <table>
+        <thead><tr><th>模块</th><th>内容</th></tr></thead>
+        <tbody>
+            <tr><td><strong>本周完成情况</strong></td><td>柱状图显示本周每天完成任务数</td></tr>
+            <tr><td><strong>星星收支流水</strong></td><td>时间线展示“+X星（完成任务）”和“-X星（购买道具）”</td></tr>
+            <tr><td><strong>宠物成长轨迹</strong></td><td>折线图显示宠物等级随时间的变化</td></tr>
+            <tr><td><strong>荣誉墙</strong></td><td>展示所有曾经获得过的限时装饰（含获得日期和有效期），已过期的显示灰色</td></tr>
+        </tbody>
+    </table>
+    <p><strong>交互</strong>：家长可点击任意日期查看当日详情，也可将页面截图保存到相册（用于打印或分享）。</p>
+
+    <hr>
+
+    <h2 id="sec4">四、非功能性需求</h2>
+
+    <h3>4.1 交互与设计原则</h3>
+    <table>
+        <thead><tr><th>原则</th><th>要求</th></tr></thead>
+        <tbody>
+            <tr><td><strong>大按钮</strong></td><td>所有可供点击的按钮直径 ≥ 44px，推荐 48px</td></tr>
+            <tr><td><strong>大字体</strong></td><td>宠物名称、星星数、状态数值等展示给孩子看的内容，字号 ≥ 20pt</td></tr>
+            <tr><td><strong>即时反馈</strong></td><td>点击任何操作按钮，<strong>0.3秒内</strong>必须有视觉或震动反馈，禁止白屏加载</td></tr>
+            <tr><td><strong>横竖屏适配</strong></td><td>推荐<strong>竖屏</strong>使用，但不排除家长横屏展示给孩子看，需自适应</td></tr>
+            <tr><td><strong>无障碍</strong></td><td>支持系统字体放大功能</td></tr>
+        </tbody>
+    </table>
+
+    <h3>4.2 动画与视觉资源</h3>
+    <table>
+        <thead><tr><th>类型</th><th>数量</th><th>规格</th><th>说明</th></tr></thead>
+        <tbody>
+            <tr><td>庆祝动画</td><td>30+</td><td>MP4/GIF，3-5秒</td><td>完成任务打星后播放，如撒花/烟花/星星雨</td></tr>
+            <tr><td>宠物动作</td><td>10套</td><td>Lottie/MP4</td><td>包括：高兴、吃东西、洗澡、玩玩具、升级、冬眠、唤醒等</td></tr>
+            <tr><td>装饰展示</td><td>按需</td><td>PNG序列帧或Lottie</td><td>限时装饰穿戴在宠物身上的展示动画</td></tr>
+        </tbody>
+    </table>
+
+    <h3>4.3 平台与技术选型建议</h3>
+    <table>
+        <thead><tr><th>阶段</th><th>建议</th><th>理由</th></tr></thead>
+        <tbody>
+            <tr><td><strong>MVP</strong></td><td>微信小程序</td><td>获客成本低、无需下载、开发周期短</td></tr>
+            <tr><td><strong>V1.0</strong></td><td>iOS + Android App（Flutter/React Native）</td><td>更好的动画性能和沉浸式体验</td></tr>
+            <tr><td><strong>数据存储</strong></td><td>云端同步（用户ID绑定）</td><td>防止手机丢失导致宠物数据丢失（对孩子的打击极大）</td></tr>
+            <tr><td><strong>后端</strong></td><td>轻量级云服务（如LeanCloud、Supabase）</td><td>快速部署，成本可控</td></tr>
+        </tbody>
+    </table>
+
+    <h3>4.4 性能要求</h3>
+    <table>
+        <thead><tr><th>指标</th><th>要求</th></tr></thead>
+        <tbody>
+            <tr><td>首页加载</td><td>≤ 1.5秒（4G网络）</td></tr>
+            <tr><td>动画播放</td><td>首次加载后缓存，重复播放无延迟</td></tr>
+            <tr><td>数据同步</td><td>每次打开App自动同步云端，网络差时本地缓存可用</td></tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2 id="sec5">五、运营与商业模式</h2>
+
+    <h3>5.1 商业化路径（纯免费，无内购）</h3>
+    <p><strong>当前阶段</strong>：完全免费，零广告。</p>
+    <p><strong>后续阶段</strong>：接入<strong>场景化电商CPS推荐</strong>，方式如下：</p>
+    <table>
+        <thead><tr><th>推荐位置</th><th>推荐内容</th><th>触发时机</th><th>示例</th></tr></thead>
+        <tbody>
+            <tr><td>任务完成页底部</td><td>与该任务相关的儿童用品</td><td>完成任务打星后</td><td>“收玩具”→推荐儿童收纳架</td></tr>
+            <tr><td>宠物商店页底部</td><td>宠物周边或洗护用品</td><td>进入商店时</td><td>洗澡道具→推荐儿童沐浴露</td></tr>
+            <tr><td>等级解锁页底部</td><td>适龄玩具/绘本</td><td>宠物升级时</td><td>Lv.5解锁头饰→推荐手工材料包</td></tr>
+        </tbody>
+    </table>
+    <p><strong>推荐原则</strong>：</p>
+    <ul>
+        <li><strong>不弹窗、不插屏、不视频广告</strong>，仅以信息流卡片形式安静出现。</li>
+        <li>每条推荐写明推荐理由（如“很多家长反馈这款计时器帮助孩子建立了时间观念”）。</li>
+        <li>所有推荐均带 <code>×</code> 关闭按钮，一键关闭后不再重复出现。</li>
+        <li>家长可在“设置”中<strong>一键关闭所有推荐</strong>。</li>
+    </ul>
+    <p><strong>严禁推荐的品类</strong>：游戏充值卡、电子设备、垃圾食品、任何与“用钱买星星”相关的虚拟商品。</p>
+
+    <h3>5.2 用户增长策略</h3>
+    <table>
+        <thead><tr><th>方式</th><th>说明</th></tr></thead>
+        <tbody>
+            <tr><td><strong>家庭裂变</strong></td><td>支持“邀请另一个家庭成员”共同管理同一孩子的任务（微信分享）</td></tr>
+            <tr><td><strong>宠物社交（后期）</strong></td><td>支持生成宠物海报分享到朋友圈：“我家小毛球今天升到Lv.10啦！”</td></tr>
+            <tr><td><strong>口碑传播</strong></td><td>主打“纯免费、零氪金”的价值观，获取家长群体自发传播</td></tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2 id="sec6">六、数据埋点建议（MVP阶段即接入）</h2>
+    <table>
+        <thead><tr><th>事件</th><th>埋点目的</th></tr></thead>
+        <tbody>
+            <tr><td>首次启动 / 宠物选择 / 命名完成</td><td>测算新手流失率</td></tr>
+            <tr><td>每日任务完成数 / 打星分布（1-5星占比）</td><td>分析家长评价习惯</td></tr>
+            <tr><td>星星收入 vs 星星支出</td><td>监测经济系统是否平衡</td></tr>
+            <tr><td>宠物每日三维状态均值</td><td>测算衰减速度是否合理</td></tr>
+            <tr><td>进入商店 / 购买道具TOP3 / 购买装饰TOP3</td><td>优化商店选品和定价</td></tr>
+            <tr><td>宠物进入冬眠次数 / 唤醒次数</td><td>评估“冬眠机制”使用率</td></tr>
+            <tr><td>连续7天未打开用户比例</td><td>监测留存，优化提醒策略</td></tr>
+            <tr><td>电商推荐点击率 / 关闭率</td><td>评估商业化体验是否影响核心使用</td></tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2 id="sec7">七、版本规划与里程碑</h2>
+    <table>
+        <thead><tr><th>阶段</th><th>版本</th><th>时间估算</th><th>核心功能</th></tr></thead>
+        <tbody>
+            <tr><td><strong>MVP</strong></td><td>v0.5</td><td>6-8周</td><td>宠物领养命名 + 基础任务（手动创建） + 1-5星评价 + 基础商店（食物/清洁/玩具） + 三维状态 + 成长值结算</td></tr>
+            <tr><td><strong>V1.0</strong></td><td>v1.0</td><td>+4周</td><td>任务模板库 + 多宠物模式 + 限时装饰（Lv.5解锁） + 冬眠/唤醒机制 + 成长记录看板 + 电商推荐（安静版）</td></tr>
+            <tr><td><strong>V1.5</strong></td><td>v1.5</td><td>+6周</td><td>每周循环任务 + 每日特惠 + 节日限定装饰 + 家庭多成员协作（邀请家人共同管理）</td></tr>
+            <tr><td><strong>V2.0</strong></td><td>v2.0</td><td>+8周</td><td>iOS/Android App（Flutter重写） + 宠物社交分享（生成海报） + 更丰富宠物动作 + 更精细的等级解锁体系</td></tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2 id="sec8">八、风险与应对</h2>
+    <table>
+        <thead><tr><th>风险</th><th>应对策略</th></tr></thead>
+        <tbody>
+            <tr><td>经济系统通胀（星星太多花不完）</td><td>通过“每日特惠”、“限时绝版装饰”、“高级道具定价”消耗存量星星；衰减速度可后台动态调整</td></tr>
+            <tr><td>经济系统通缩（星星太少玩不下去）</td><td>每日任务保底给1星，基础食物定价2星，保证做1天任务至少能买1个道具</td></tr>
+            <tr><td>家长长时间不用导致宠物数据落后</td><td>不设惩罚，冬眠不扣成长值，回归后赠送小装饰鼓励，强调“随时回来都可以”</td></tr>
+            <tr><td>电商推荐影响体验</td><td>默认开启但可一键关闭；推荐内容严格筛选；不弹窗不插屏</td></tr>
+            <tr><td>儿童误操作（如误删宠物数据）</td><td>所有破坏性操作需家长PIN码验证 + 二次确认</td></tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2 id="sec9">九、待定事项（需团队评审决策）</h2>
+    <table>
+        <thead><tr><th>事项</th><th>选项</th><th>建议</th></tr></thead>
+        <tbody>
+            <tr><td><strong>美术风格</strong></td><td>A. 扁平毛绒风 / B. Q版卡漫风 / C. 简约线条风</td><td>建议A，温暖亲切，适合低龄儿童</td></tr>
+            <tr><td><strong>初始3只宠物形象</strong></td><td>待画师出稿，建议：小恐龙、小猫咪、小企鹅（或小熊猫）</td><td>需兼顾男女孩偏好</td></tr>
+            <tr><td><strong>平台优先级</strong></td><td>A. 微信小程序先上 / B. App先上</td><td>建议A，获客成本低，快速验证</td></tr>
+            <tr><td><strong>每日结算时间</strong></td><td>固定凌晨0点 / 家长自定义</td><td>建议固定0点，V1.5再支持自定义</td></tr>
+            <tr><td><strong>宠物冬眠后，是否保留已购买的限时装饰</strong></td><td>保留 / 冻结计时 / 继续计时</td><td>建议<strong>保留并暂停计时</strong>，冬眠期间限时装饰有效期暂停，唤醒后继续倒计时，避免惩罚</td></tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2 id="sec10">十、附录：核心数值速查表</h2>
+    <table class="appendix-table">
+        <thead><tr><th>项目</th><th>数值</th></tr></thead>
+        <tbody>
+            <tr><td>任务可得星星</td><td>1 - 5 星（家长主观评定）</td></tr>
+            <tr><td>基础食物售价</td><td>2 星（+30%饱腹）</td></tr>
+            <tr><td>基础玩具售价</td><td>3 星（+30%快乐）</td></tr>
+            <tr><td>初级头饰售价</td><td>5 星（有效期3天）</td></tr>
+            <tr><td>中级套装售价</td><td>15 星（有效期5天）</td></tr>
+            <tr><td>魔法醒醒果售价</td><td>3 星</td></tr>
+            <tr><td>每日饱腹衰减</td><td>-15%</td></tr>
+            <tr><td>每日清洁衰减</td><td>-10%</td></tr>
+            <tr><td>每日快乐衰减</td><td>-12%</td></tr>
+            <tr><td>优秀照顾（≥80%）成长值</td><td>+10</td></tr>
+            <tr><td>基础照顾（50%-79%）成长值</td><td>+5</td></tr>
+            <tr><td>疏于照顾（&lt;50%）成长值</td><td>+1（保底）</td></tr>
+            <tr><td>升级所需成长值</td><td>当前等级 × 20</td></tr>
+            <tr><td>冬眠触发条件</td><td>任意一项三维状态降至0%</td></tr>
+            <tr><td>最大宠物数量</td><td>3 只</td></tr>
+            <tr><td>名字长度限制</td><td>2-6 个中文字符</td></tr>
+        </tbody>
+    </table>
+
+    <div class="footer-note">
+        📄 文档结束 · 成长伙伴 PRD V1.0 · 2026年8月28日
+    </div>
+
+</div>
+</body>
+</html>
