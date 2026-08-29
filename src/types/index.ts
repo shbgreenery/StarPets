@@ -26,7 +26,7 @@ export interface Rule {
   name: string
   points: number
   category: string
-  is_custom?: boolean
+  is_custom?: number
   created_at?: number
 }
 
