@@ -49,11 +49,6 @@ async function register(username: string, password: string): Promise<User> {
   return u
 }
 
-function fetchUserInfo() {
-  // 本地场景：用户信息已在 localStorage，无需请求
-  return user.value
-}
-
 export function useAuth() {
   return {
     user,
@@ -63,7 +58,6 @@ export function useAuth() {
     setUser,
     logout,
     login,
-    register,
-    fetchUserInfo
+    register
   }
 }

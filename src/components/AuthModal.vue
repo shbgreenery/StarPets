@@ -12,7 +12,7 @@ const emit = defineEmits<{
   login: [user: { id: string; username: string; isGuest: boolean }]
 }>()
 
-const { login, register } = useAuth()
+const { login, register, setUser } = useAuth()
 
 const mode = ref<'login' | 'register'>('login')
 const username = ref('')
@@ -78,10 +78,8 @@ function switchMode() {
 }
 
 function guestLogin() {
-  // 游客登录使用默认 token
   const guestUser = { id: 'guest', username: '游客', isGuest: true }
-  localStorage.setItem('token', 'guest')
-  localStorage.setItem('user', JSON.stringify(guestUser))
+  setUser(guestUser)
   emit('login', guestUser)
   emit('close')
 }
