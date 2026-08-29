@@ -32,6 +32,29 @@ describe('规则', () => {
     await deleteRule(rules[0].id)
     expect(await getRules()).toHaveLength(83)
   })
+
+  it('同类别内按 points 降序', async () => {
+    await addRule('规则A', 5, '其他')
+    await addRule('规则B', 8, '其他')
+    const rules = await getRules()
+    const idxA = rules.findIndex(r => r.name === '规则A')
+    const idxB = rules.findIndex(r => r.name === '规则B')
+    expect(idxA).toBeGreaterThan(-1)
+    expect(idxB).toBeGreaterThan(-1)
+    expect(idxB).toBeLessThan(idxA) // 8 分排在 5 分之前
+  })
+
+  it('按类别确定性排序（localeCompare zh）', async () => {
+    const rules = await getRules()
+    const categories: string[] = []
+    for (const r of rules) {
+      if (categories[categories.length - 1] !== r.category) categories.push(r.category)
+    }
+    const sorted = [...categories].sort((a, b) => a.localeCompare(b, 'zh'))
+    expect(categories).toEqual(sorted)
+    // zh 拼音序下类别顺序示例：其他 在 学习 之前
+    expect(categories.indexOf('其他')).toBeLessThan(categories.indexOf('学习'))
+  })
 })
 
 describe('设置', () => {
