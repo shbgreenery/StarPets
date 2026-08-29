@@ -6,29 +6,6 @@ import { calculateLevel } from '../utils/level.js'
 
 const router = Router()
 
-// 验证班级归属的中间件
-function verifyClassOwnership(req, res, next) {
-  const classId = req.params.classId || req.body.classId
-  if (!classId) {
-    return res.status(400).json({ error: '缺少班级ID' })
-  }
-  const cls = db.prepare('SELECT * FROM classes WHERE id = ?').get(classId)
-  if (!cls) {
-    return res.status(404).json({ error: '班级不存在' })
-  }
-  if (cls.user_id !== req.userId) {
-    return res.status(403).json({ error: '无权访问此班级' })
-  }
-  req.classId = classId
-  next()
-}
-
-// 获取班级学生列表
-router.get('/classes/:classId/students', authMiddleware, verifyClassOwnership, (req, res) => {
-  const students = db.prepare('SELECT * FROM students WHERE class_id = ? ORDER BY name').all(req.params.classId)
-  res.json({ students })
-})
-
 // 添加学生
 router.post('/', authMiddleware, (req, res) => {
   const { classId, name, studentNo } = req.body
