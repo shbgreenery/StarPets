@@ -26,7 +26,7 @@ class PetGardenDB extends Dexie {
   constructor() {
     super('pet-garden')
     this.version(1).stores({
-      classes: 'id, name',
+      classes: 'id, name, created_at',
       students: 'id, class_id, name, student_no, total_points',
       badges: 'id, student_id, pet_type',
       evaluation_rules: 'id, category, is_custom',
