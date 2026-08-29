@@ -37,6 +37,7 @@ export function initDb() {
       student_no TEXT,
       total_points INTEGER DEFAULT 0,
       pet_type TEXT,
+      pet_name TEXT,
       pet_level INTEGER DEFAULT 1,
       pet_exp INTEGER DEFAULT 0,
       created_at INTEGER,
@@ -88,4 +89,11 @@ export function initDb() {
       ('rule_9', '坚持运动', 2, '健康', 0, 1704067200000),
       ('rule_10', '不讲卫生', -1, '健康', 0, 1704067200000);
   `)
+
+  // 迁移：为已有数据库的 students 表添加 pet_name 字段
+  const hasPetName = db.prepare(`SELECT COUNT(*) as count FROM pragma_table_info('students') WHERE name = 'pet_name'`).get()
+  if (!hasPetName.count) {
+    db.exec(`ALTER TABLE students ADD COLUMN pet_name TEXT`)
+    console.log('✅ 迁移：students 表添加 pet_name 字段')
+  }
 }

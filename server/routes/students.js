@@ -99,7 +99,7 @@ router.post('/import', authMiddleware, (req, res) => {
 
 // 更新学生宠物
 router.put('/:id/pet', authMiddleware, (req, res) => {
-  const { petType } = req.body
+  const { petType, petName } = req.body
   const now = Date.now()
 
   // 验证学生归属
@@ -121,9 +121,29 @@ router.put('/:id/pet', authMiddleware, (req, res) => {
   }
 
   // Update pet type and reset level/exp
-  db.prepare('UPDATE students SET pet_type = ?, pet_level = 1, pet_exp = 0 WHERE id = ?')
-    .run(petType, req.params.id)
+  db.prepare('UPDATE students SET pet_type = ?, pet_name = ?, pet_level = 1, pet_exp = 0 WHERE id = ?')
+    .run(petType, petName?.trim() || null, req.params.id)
 
+  res.json({ success: true })
+})
+
+// 更新宠物名字
+router.put('/:id/pet/name', authMiddleware, (req, res) => {
+  const { petName } = req.body
+
+  // 验证学生归属
+  const student = db.prepare(`
+    SELECT s.* FROM students s
+    JOIN classes c ON s.class_id = c.id
+    WHERE s.id = ? AND c.user_id = ?
+  `).get(req.params.id, req.userId)
+
+  if (!student) {
+    return res.status(404).json({ error: '学生不存在或无权访问' })
+  }
+
+  db.prepare('UPDATE students SET pet_name = ? WHERE id = ?')
+    .run(petName?.trim() || null, req.params.id)
   res.json({ success: true })
 })
 

@@ -21,6 +21,7 @@ interface Student {
   student_no: string | null
   total_points: number
   pet_type: string | null
+  pet_name: string | null
   pet_level: number
   pet_exp: number
 }
@@ -64,6 +65,10 @@ const newStudentName = ref('')
 const newStudentNo = ref('')
 const importText = ref('')
 const selectedStudent = ref<Student | null>(null)
+const adoptPetId = ref<string | null>(null)
+const adoptPetName = ref('')
+const editingPetName = ref(false)
+const editPetNameValue = ref('')
 const evaluationRecords = ref<any[]>([])
 const selectedEvalTab = ref('学习')
 const showRulesModal = ref(false)
@@ -403,19 +408,28 @@ async function importStudents() {
   }
 }
 
-async function openPetSelect(student: Student) {
+function openPetSelect(student: Student) {
   selectedStudent.value = student
+  adoptPetId.value = null
+  adoptPetName.value = student.pet_name || ''
   showPetModal.value = true
 }
 
-async function selectPet(petId: string) {
-  if (!selectedStudent.value) return
+function selectPet(petId: string) {
+  adoptPetId.value = petId
+}
+
+async function confirmAdopt() {
+  if (!selectedStudent.value || !adoptPetId.value) return
   try {
-    await api.put(`/students/${selectedStudent.value.id}/pet`, { petType: petId })
-    const pet = getPetType(petId)
+    const petName = adoptPetName.value.trim() || undefined
+    await api.put(`/students/${selectedStudent.value.id}/pet`, { petType: adoptPetId.value, petName })
+    const pet = getPetType(adoptPetId.value)
     toast.success(`🎉 ${selectedStudent.value.name} 领养了一只 ${pet?.name || '宠物'}！`)
     showPetModal.value = false
     selectedStudent.value = null
+    adoptPetId.value = null
+    adoptPetName.value = ''
     await loadStudents()
     // 更新详情面板中的学生信息
     if (detailStudent.value) {
@@ -424,6 +438,30 @@ async function selectPet(petId: string) {
   } catch (error) {
     console.error('领养宠物失败:', error)
     toast.error('领养失败，请重试')
+  }
+}
+
+function startEditPetName() {
+  if (!detailStudent.value) return
+  editingPetName.value = true
+  editPetNameValue.value = detailStudent.value.pet_name || ''
+}
+
+async function savePetName() {
+  if (!detailStudent.value) return
+  try {
+    const petName = editPetNameValue.value.trim() || null
+    await api.put(`/students/${detailStudent.value.id}/pet/name`, { petName })
+    detailStudent.value.pet_name = petName
+    const idx = students.value.findIndex(s => s.id === detailStudent.value!.id)
+    if (idx !== -1) {
+      students.value[idx] = { ...students.value[idx], pet_name: petName }
+    }
+    editingPetName.value = false
+    toast.success('宠物名字已更新')
+  } catch (error) {
+    console.error('改名字失败:', error)
+    toast.error('改名字失败，请重试')
   }
 }
 
@@ -438,8 +476,7 @@ async function openDetailPanel(student: Student) {
       cancelText: '暂不',
       type: 'info',
       onConfirm: () => {
-        selectedStudent.value = student
-        showPetModal.value = true
+        openPetSelect(student)
         confirmDialog.value.show = false
       }
     }
@@ -1223,7 +1260,7 @@ onMounted(async () => {
                 <span class="font-bold text-lg text-gray-800 group-hover:text-orange-500 transition-colors">{{ student.name }}</span>
                 <span class="text-xs px-2 py-1 rounded-full" 
                   :class="student.pet_type ? 'bg-gradient-to-r from-orange-100 to-pink-100 text-orange-600' : 'bg-gray-100 text-gray-400'">
-                  {{ student.pet_type ? getPetType(student.pet_type)?.name : '未领养' }}
+                  {{ student.pet_type ? (student.pet_name || getPetType(student.pet_type)?.name) : '未领养' }}
                 </span>
               </div>
               
@@ -1462,11 +1499,14 @@ onMounted(async () => {
           
           <!-- 宠物网格 - 所有宠物混合显示 -->
           <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            <button 
-              v-for="pet in PET_TYPES" 
+            <button
+              v-for="pet in PET_TYPES"
               :key="pet.id"
               @click="selectPet(pet.id)"
-              class="relative bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 hover:shadow-xl hover:scale-105 transition-all text-center group border-2 border-transparent hover:border-orange-300 hover:from-orange-50 hover:to-pink-50 overflow-hidden"
+              :class="adoptPetId === pet.id
+                ? 'border-orange-400 from-orange-50 to-pink-50 ring-2 ring-orange-200'
+                : 'border-transparent hover:border-orange-300 hover:from-orange-50 hover:to-pink-50'"
+              class="relative bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 hover:shadow-xl hover:scale-105 transition-all text-center group border-2 overflow-hidden"
             >
               <!-- 装饰性边框 -->
               <div class="absolute inset-0 rounded-2xl border-2 border-dashed border-gray-200 group-hover:border-orange-200 transition-colors"></div>
@@ -1498,12 +1538,32 @@ onMounted(async () => {
             </button>
           </div>
 
-          <div class="mt-6 p-4 bg-gradient-to-r from-orange-50 via-pink-50 to-purple-50 rounded-xl text-sm text-gray-600 text-center border border-orange-100">
-            <span class="text-lg">💡</span> 点击宠物即可领养，宠物会陪伴学生一起成长！
+          <!-- 宠物命名 -->
+          <div class="mt-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">给宠物起个名字 <span class="text-gray-400">（选填）</span></label>
+            <input
+              v-model="adoptPetName"
+              type="text"
+              placeholder="留空则默认用品种名"
+              maxlength="20"
+              class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-orange-400 focus:outline-none transition-colors text-gray-800 placeholder-gray-400"
+            />
           </div>
 
-          <div class="flex justify-end mt-6">
+          <div class="mt-6 p-4 bg-gradient-to-r from-orange-50 via-pink-50 to-purple-50 rounded-xl text-sm text-gray-600 text-center border border-orange-100">
+            <span class="text-lg">💡</span> 先点击选中宠物，再起个名字，最后确认领养！
+          </div>
+
+          <div class="flex justify-end gap-3 mt-6">
             <button @click="showPetModal = false" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-medium transition-colors">取消</button>
+            <button
+              @click="confirmAdopt"
+              :disabled="!adoptPetId"
+              :class="adoptPetId ? 'bg-gradient-to-r from-orange-500 to-pink-500 hover:shadow-lg' : 'bg-gray-300'"
+              class="px-6 py-3 rounded-xl font-medium text-white transition-colors disabled:cursor-not-allowed"
+            >
+              确认领养
+            </button>
           </div>
         </div>
       </div>
@@ -1766,6 +1826,10 @@ onMounted(async () => {
           <div class="relative bg-gradient-to-r from-orange-400 via-pink-400 to-purple-400 p-6 rounded-t-3xl">
             <!-- 顶部操作按钮 -->
             <div class="absolute top-4 right-4 flex gap-2">
+              <button v-if="detailStudent.pet_type" @click="startEditPetName()" class="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-full flex items-center gap-1.5 text-white text-sm transition-colors" title="改名字">
+                <span>✏️</span>
+                <span class="font-medium">改名</span>
+              </button>
               <button @click="showDetailPanel = false; openPetSelect(detailStudent!)" class="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-full flex items-center gap-1.5 text-white text-sm transition-colors" title="更换宠物">
                 <span>🐾</span>
                 <span class="font-medium">换宠物</span>
@@ -1785,8 +1849,19 @@ onMounted(async () => {
               </div>
               <div class="text-white">
                 <h3 class="text-2xl font-bold">{{ detailStudent.name }}</h3>
-                <p class="text-white/80 text-sm">
-                  {{ detailStudent.pet_type ? getPetType(detailStudent.pet_type)?.name : '未领养' }}
+                <div v-if="editingPetName" class="flex items-center gap-2 mt-1">
+                  <input
+                    v-model="editPetNameValue"
+                    type="text"
+                    maxlength="20"
+                    placeholder="输入名字"
+                    class="px-2 py-1 rounded-lg text-gray-800 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-white/50"
+                  />
+                  <button @click="savePetName" class="px-2 py-1 bg-white/30 hover:bg-white/40 rounded-lg text-white text-sm transition-colors">确定</button>
+                  <button @click="editingPetName = false" class="px-2 py-1 bg-black/20 hover:bg-black/30 rounded-lg text-white text-sm transition-colors">取消</button>
+                </div>
+                <p v-else class="text-white/80 text-sm">
+                  {{ detailStudent.pet_type ? (detailStudent.pet_name || getPetType(detailStudent.pet_type)?.name) : '未领养' }}
                   · Lv.{{ getDisplayLevel(detailStudent) }}
                   · ⭐ {{ detailStudent.total_points }}
                 </p>

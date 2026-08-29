@@ -19,6 +19,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Playwright MCP 临时文件
+.playwright-mcp/
+
 # Environment
 .env
 .env.local
