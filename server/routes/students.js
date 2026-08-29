@@ -100,7 +100,6 @@ router.post('/import', authMiddleware, (req, res) => {
 // 更新学生宠物
 router.put('/:id/pet', authMiddleware, (req, res) => {
   const { petType, petName } = req.body
-  const now = Date.now()
 
   // 验证学生归属
   const student = db.prepare(`
@@ -113,15 +112,8 @@ router.put('/:id/pet', authMiddleware, (req, res) => {
     return res.status(404).json({ error: '学生不存在或无权访问' })
   }
 
-  // If student already has a pet, create a badge for it if level is 8
-  if (student.pet_type && student.pet_level >= 8) {
-    const badgeId = uuidv4()
-    db.prepare('INSERT INTO badges (id, student_id, pet_type, earned_at) VALUES (?, ?, ?, ?)')
-      .run(badgeId, req.params.id, student.pet_type, now)
-  }
-
-  // Update pet type and reset level/exp
-  db.prepare('UPDATE students SET pet_type = ?, pet_name = ?, pet_level = 1, pet_exp = 0 WHERE id = ?')
+  // 换宠物只更新品种和名字，保留等级和经验
+  db.prepare('UPDATE students SET pet_type = ?, pet_name = ? WHERE id = ?')
     .run(petType, petName?.trim() || null, req.params.id)
 
   res.json({ success: true })
