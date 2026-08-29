@@ -58,8 +58,9 @@ router.delete('/:id', authMiddleware, (req, res) => {
     return res.status(404).json({ error: '学生不存在或无权访问' })
   }
 
-  // 先删除相关的评价记录
+  // 先删除相关的评价记录和徽章
   db.prepare('DELETE FROM evaluation_records WHERE student_id = ?').run(req.params.id)
+  db.prepare('DELETE FROM badges WHERE student_id = ?').run(req.params.id)
   // 再删除学生
   db.prepare('DELETE FROM students WHERE id = ?').run(req.params.id)
   res.json({ success: true })

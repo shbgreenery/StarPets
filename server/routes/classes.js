@@ -66,8 +66,12 @@ router.delete('/:id', authMiddleware, (req, res) => {
     return res.status(403).json({ error: '无权删除' })
   }
 
-  // Delete students in this class first
+  // 先删除该班级下所有学生的徽章和评价记录
+  db.prepare('DELETE FROM badges WHERE student_id IN (SELECT id FROM students WHERE class_id = ?)').run(req.params.id)
+  db.prepare('DELETE FROM evaluation_records WHERE class_id = ?').run(req.params.id)
+  // 删除学生
   db.prepare('DELETE FROM students WHERE class_id = ?').run(req.params.id)
+  // 删除班级
   db.prepare('DELETE FROM classes WHERE id = ?').run(req.params.id)
   res.json({ success: true })
 })
