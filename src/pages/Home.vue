@@ -6,6 +6,9 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import AuthModal from '@/components/AuthModal.vue'
 import { useToast } from '@/composables/useToast'
 import { useAuth } from '@/composables/useAuth'
+import { getClasses, createClass, updateClass, deleteClass, getStudents, addStudent, importStudents, updateStudentPet, updateStudentPetName, deleteStudent } from '@/db/classes'
+import { getRules, addRule, deleteRule } from '@/db/rules'
+import { addEvaluation, getStudentEvaluations, getClassEvaluations, deleteEvaluation, deleteLatestEvaluation } from '@/db/evaluations'
 
 // Types
 interface Class {
@@ -30,7 +33,7 @@ interface Student {
 const toast = useToast()
 
 // 用户认证
-const { isGuest, username, logout, api } = useAuth()
+const { isGuest, username, logout } = useAuth()
 const showAuthModal = ref(false)
 
 // 用户菜单
@@ -41,7 +44,7 @@ interface Rule {
   name: string
   points: number
   category: string
-  is_custom?: boolean
+  is_custom?: number
 }
 
 // State
@@ -237,8 +240,7 @@ function getDisplayLevel(student: Student): number {
 // API calls
 async function loadClasses() {
   try {
-    const res = await api.get('/classes')
-    classes.value = res.data.classes
+    classes.value = await getClasses()
     if (classes.value.length > 0) {
       const savedClassId = localStorage.getItem('pet-garden-current-class')
       const savedClass = savedClassId ? classes.value.find(c => c.id === savedClassId) : null
@@ -265,22 +267,20 @@ async function selectClass(cls: Class) {
 
 async function loadStudents() {
   if (!currentClass.value) return
-  const res = await api.get(`/classes/${currentClass.value.id}/students`)
-  students.value = res.data.students
+  students.value = await getStudents(currentClass.value.id)
 }
 
 async function loadRules() {
-  const res = await api.get('/rules')
-  rules.value = res.data.rules
+  rules.value = await getRules()
 }
 
-async function createClass() {
+async function handleCreateClass() {
   if (!newClassName.value.trim()) {
     toast.warning('请输入班级名称')
     return
   }
   try {
-    await api.post('/classes', { name: newClassName.value.trim() })
+    await createClass(newClassName.value.trim())
     newClassName.value = ''
     showClassModal.value = false
     await loadClasses()
@@ -291,7 +291,7 @@ async function createClass() {
   }
 }
 
-async function updateClass() {
+async function handleUpdateClass() {
   if (!newClassName.value.trim()) {
     toast.warning('请输入班级名称')
     return
@@ -300,7 +300,7 @@ async function updateClass() {
   if (!classToEdit) return
   try {
     const newName = newClassName.value.trim()
-    await api.put(`/classes/${classToEdit.id}`, { name: newName })
+    await updateClass(classToEdit.id, newName)
     // 如果当前选中的班级被修改，更新当前班级名称
     if (currentClass.value?.id === classToEdit.id) {
       currentClass.value = { ...currentClass.value, name: newName } as Class
@@ -328,7 +328,7 @@ function openEditClassModal() {
   showClassModal.value = true
 }
 
-async function deleteClass(id: string) {
+async function handleDeleteClass(id: string) {
   showConfirm({
     title: '删除班级',
     message: '确定删除该班级？所有学生数据将一并删除！',
@@ -336,7 +336,7 @@ async function deleteClass(id: string) {
     cancelText: '取消',
     type: 'danger',
     onConfirm: async () => {
-      await api.delete(`/classes/${id}`)
+      await deleteClass(id)
       if (currentClass.value?.id === id) {
         currentClass.value = null
         students.value = []
@@ -347,14 +347,10 @@ async function deleteClass(id: string) {
   })
 }
 
-async function addStudent() {
+async function handleAddStudent() {
   if (!newStudentName.value.trim() || !currentClass.value) return
   try {
-    await api.post('/students', {
-      classId: currentClass.value.id,
-      name: newStudentName.value.trim(),
-      studentNo: newStudentNo.value.trim() || null
-    })
+    await addStudent(currentClass.value.id, newStudentName.value.trim(), newStudentNo.value.trim() || null)
     newStudentName.value = ''
     newStudentNo.value = ''
     showStudentModal.value = false
@@ -370,7 +366,7 @@ function openImportModal() {
   showImportModal.value = true
 }
 
-async function importStudents() {
+async function handleImportStudents() {
   if (!importText.value.trim() || !currentClass.value) return
   
   const lines = importText.value.trim().split('\n')
@@ -394,11 +390,8 @@ async function importStudents() {
   }
   
   try {
-    const res = await api.post('/students/import', {
-      classId: currentClass.value.id,
-      students
-    })
-    toast.success(`成功导入 ${res.data.imported} 名学生`)
+    const res = await importStudents(currentClass.value.id, students)
+    toast.success(`成功导入 ${res.imported} 名学生`)
     showImportModal.value = false
     importText.value = ''
     await loadStudents()
@@ -423,7 +416,7 @@ async function confirmAdopt() {
   if (!selectedStudent.value || !adoptPetId.value) return
   try {
     const petName = adoptPetName.value.trim() || undefined
-    await api.put(`/students/${selectedStudent.value.id}/pet`, { petType: adoptPetId.value, petName })
+    await updateStudentPet(selectedStudent.value.id, adoptPetId.value, petName)
     const pet = getPetType(adoptPetId.value)
     toast.success(`🎉 ${selectedStudent.value.name} 领养了一只 ${pet?.name || '宠物'}！`)
     showPetModal.value = false
@@ -451,7 +444,7 @@ async function savePetName() {
   if (!detailStudent.value) return
   try {
     const petName = editPetNameValue.value.trim() || null
-    await api.put(`/students/${detailStudent.value.id}/pet/name`, { petName })
+    await updateStudentPetName(detailStudent.value.id, petName)
     detailStudent.value.pet_name = petName
     const idx = students.value.findIndex(s => s.id === detailStudent.value!.id)
     if (idx !== -1) {
@@ -493,8 +486,7 @@ async function openDetailPanel(student: Student) {
 // 加载学生评价记录
 async function loadStudentRecords(studentId: string) {
   try {
-    const res = await api.get(`/evaluations?studentId=${studentId}&pageSize=20`)
-    studentRecords.value = res.data.records || []
+    studentRecords.value = await getStudentEvaluations(studentId)
   } catch (error) {
     console.error('加载记录失败:', error)
     studentRecords.value = []
@@ -555,7 +547,7 @@ async function batchDeleteStudents() {
       let successCount = 0
       for (const studentId of deleteStudentList.value) {
         try {
-          await api.delete(`/students/${studentId}`)
+          await deleteStudent(studentId)
           successCount++
         } catch (error) {
           console.error('删除失败:', error)
@@ -598,8 +590,8 @@ async function detailQuickAdd(rule: Rule) {
   const student = detailStudent.value
   
   try {
-    const res = await api.post('/evaluations', {
-      classId: currentClass.value?.id,
+    const res = await addEvaluation({
+      classId: currentClass.value?.id!,
       studentId: student.id,
       points: rule.points,
       reason: rule.name,
@@ -609,12 +601,12 @@ async function detailQuickAdd(rule: Rule) {
     // 触发卡片动效
     triggerScoreAnimation(student.id, rule.points)
     
-    if (res.data.levelUp) {
+    if (res.levelUp) {
       levelUpInfo.value = { 
         name: student.name, 
-        level: res.data.petLevel,
+        level: res.petLevel,
         petType: student.pet_type || '',
-        prevLevel: res.data.petLevel - 1
+        prevLevel: res.petLevel - 1
       }
       levelUpImagesLoaded.value = { prev: false, current: false }
       levelUpPhase.value = 'show-prev'
@@ -625,7 +617,7 @@ async function detailQuickAdd(rule: Rule) {
       setTimeout(() => { levelUpPhase.value = 'show-current' }, 1500)
       setTimeout(() => { showLevelUpAnimation.value = false }, 4000)
     }
-    if (res.data.graduated) {
+    if (res.graduated) {
       toast.success(`🎓 恭喜！${student.name} 的宠物毕业了，获得了专属徽章！`)
     }
     
@@ -646,8 +638,8 @@ async function quickAdd(student: Student | null, rule: Rule) {
     
     for (const studentId of studentIds) {
       try {
-        await api.post('/evaluations', {
-          classId: currentClass.value?.id,
+        await addEvaluation({
+          classId: currentClass.value?.id!,
           studentId: studentId,
           points: rule.points,
           reason: rule.name,
@@ -669,8 +661,8 @@ async function quickAdd(student: Student | null, rule: Rule) {
   }
   
   try {
-    const res = await api.post('/evaluations', {
-      classId: currentClass.value?.id,
+    const res = await addEvaluation({
+      classId: currentClass.value?.id!,
       studentId: student.id,
       points: rule.points,
       reason: rule.name,
@@ -680,12 +672,12 @@ async function quickAdd(student: Student | null, rule: Rule) {
     // 触发动效
     triggerScoreAnimation(student.id, rule.points)
     
-    if (res.data.levelUp) {
+    if (res.levelUp) {
       levelUpInfo.value = { 
         name: student.name, 
-        level: res.data.petLevel,
+        level: res.petLevel,
         petType: student.pet_type || '',
-        prevLevel: res.data.petLevel - 1
+        prevLevel: res.petLevel - 1
       }
       levelUpImagesLoaded.value = { prev: false, current: false }
       levelUpPhase.value = 'show-prev'
@@ -696,7 +688,7 @@ async function quickAdd(student: Student | null, rule: Rule) {
       setTimeout(() => { levelUpPhase.value = 'show-current' }, 1500)
       setTimeout(() => { showLevelUpAnimation.value = false }, 4000)
     }
-    if (res.data.graduated) {
+    if (res.graduated) {
       toast.success(`🎓 恭喜！${student.name} 的宠物毕业了，获得了专属徽章！`)
     }
     
@@ -709,9 +701,9 @@ async function quickAdd(student: Student | null, rule: Rule) {
 
 async function loadEvaluationRecords() {
   if (!currentClass.value) return
-  const res = await api.get(`/evaluations?classId=${currentClass.value.id}&page=${recordsPage.value}&pageSize=${recordsPageSize}`)
-  evaluationRecords.value = res.data.records
-  totalRecords.value = res.data.total
+  const res = await getClassEvaluations(currentClass.value.id, recordsPage.value, recordsPageSize)
+  evaluationRecords.value = res.records
+  totalRecords.value = res.total
 }
 
 const paginatedRecords = computed(() => {
@@ -757,14 +749,14 @@ async function undoLastEvaluation(recordId?: string) {
         let res
         if (recordId) {
           // 撤回指定记录
-          res = await api.delete(`/evaluations/${recordId}`)
+          res = await deleteEvaluation(recordId)
         } else {
           // 撤回最新记录
-          res = await api.delete(`/evaluations/latest?classId=${currentClass.value!.id}`)
+          res = await deleteLatestEvaluation(currentClass.value!.id)
         }
         
-        if (res.data.success) {
-          toast.success(`已撤回：${res.data.undone.student_name} ${res.data.undone.points > 0 ? '+' : ''}${res.data.undone.points}分`)
+        if (res.success) {
+          toast.success(`已撤回：${res.undone.student_name} ${res.undone.points > 0 ? '+' : ''}${res.undone.points}分`)
           await loadStudents()
           await loadEvaluationRecords()
         }
@@ -776,17 +768,13 @@ async function undoLastEvaluation(recordId?: string) {
   })
 }
 
-async function addRule() {
+async function handleAddRule() {
   if (!newRuleName.value.trim()) {
     toast.warning('请输入规则名称')
     return
   }
   try {
-    await api.post('/rules', {
-      name: newRuleName.value.trim(),
-      points: newRulePoints.value,
-      category: newRuleCategory.value
-    })
+    await addRule(newRuleName.value.trim(), newRulePoints.value, newRuleCategory.value)
     newRuleName.value = ''
     newRulePoints.value = 1
     toast.success('添加成功！')
@@ -797,7 +785,7 @@ async function addRule() {
   }
 }
 
-async function deleteRule(id: string) {
+async function handleDeleteRule(id: string) {
   showConfirm({
     title: '删除规则',
     message: '确定删除该规则？',
@@ -806,7 +794,7 @@ async function deleteRule(id: string) {
     type: 'warning',
     onConfirm: async () => {
       try {
-        await api.delete(`/rules/${id}`)
+        await deleteRule(id)
         await loadRules()
         toast.success('删除成功！')
       } catch (error) {
@@ -816,55 +804,6 @@ async function deleteRule(id: string) {
     }
   })
 }
-
-// TODO: 导入导出功能暂时屏蔽，等待重构后恢复
-/*
-async function exportBackup() {
-  try {
-    const res = await api.get('/backup', { responseType: 'blob' })
-    const url = window.URL.createObjectURL(new Blob([res.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `pet-garden-backup-${Date.now()}.json`)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    alert('备份导出成功！')
-  } catch (error) {
-    console.error('导出失败:', error)
-    alert('导出失败')
-  }
-}
-
-async function importBackup(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  
-  const fileInput = event.target as HTMLInputElement
-  
-  showConfirm({
-    title: '导入备份',
-    message: '导入将覆盖现有数据，确定继续？',
-    confirmText: '导入',
-    cancelText: '取消',
-    type: 'warning',
-    onConfirm: async () => {
-      try {
-        const text = await file.text()
-        const data = JSON.parse(text)
-        await api.post('/restore', data)
-        toast.success('数据恢复成功！')
-        await loadClasses()
-        await loadRules()
-      } catch (error) {
-        console.error('导入失败:', error)
-        toast.error('导入失败，请确保文件格式正确')
-      }
-      fileInput.value = ''
-    }
-  })
-}
-*/
 
 function getStudentPetImage(student: Student): string {
   if (!student.pet_type) return ''
@@ -1055,15 +994,7 @@ onMounted(async () => {
             <div v-if="showClassMenu" class="absolute right-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-40 z-50 overflow-hidden">
               <button @click="openCreateClassModal" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">➕ 新建</button>
               <button v-if="currentClass" @click="openEditClassModal" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">✏️ 重命名</button>
-              <button v-if="currentClass" @click="deleteClass(currentClass.id)" class="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">🗑️ 删除</button>
-              <!-- TODO: 导入导出功能暂时屏蔽，等待重构后恢复
-              <hr class="my-1.5 border-gray-100">
-              <button @click="exportBackup" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">💾 导出</button>
-              <label class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors cursor-pointer block">
-                📥 导入
-                <input type="file" accept=".json" @change="importBackup" class="hidden" />
-              </label>
-              -->
+              <button v-if="currentClass" @click="handleDeleteClass(currentClass.id)" class="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">🗑️ 删除</button>
             </div>
           </Transition>
         </div>
@@ -1347,11 +1278,11 @@ onMounted(async () => {
             type="text" 
             placeholder="输入班级名称..."
             class="w-full border-2 border-gray-200 rounded-xl px-5 py-3 mb-6 text-lg focus:outline-none focus:border-orange-400 transition-colors"
-            @keyup.enter="editingClass ? updateClass() : createClass()"
+            @keyup.enter="editingClass ? handleUpdateClass() : handleCreateClass()"
           />
           <div class="flex gap-3 justify-end">
             <button @click="showClassModal = false; editingClass = null; newClassName = ''" class="px-6 py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors">取消</button>
-            <button @click="editingClass ? updateClass() : createClass()" class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
+            <button @click="editingClass ? handleUpdateClass() : handleCreateClass()" class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
               {{ editingClass ? '保存' : '创建' }}
             </button>
           </div>
@@ -1380,7 +1311,7 @@ onMounted(async () => {
           />
           <div class="flex gap-3 justify-end">
             <button @click="showStudentModal = false" class="px-6 py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors">取消</button>
-            <button @click="addStudent" class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
+            <button @click="handleAddStudent" class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
               添加
             </button>
           </div>
@@ -1413,7 +1344,7 @@ onMounted(async () => {
           </div>
           <div class="flex gap-3 justify-end">
             <button @click="showImportModal = false" class="px-6 py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors">取消</button>
-            <button @click="importStudents" class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
+            <button @click="handleImportStudents" class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
               导入
             </button>
           </div>
@@ -1767,7 +1698,7 @@ onMounted(async () => {
               />
             </div>
             <button 
-              @click="addRule"
+              @click="handleAddRule"
               class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-6 py-2.5 rounded-xl font-bold hover:shadow-lg transition-all"
             >
               添加规则
@@ -1800,7 +1731,7 @@ onMounted(async () => {
                     </div>
                     <button 
                       v-if="rule.is_custom"
-                      @click="deleteRule(rule.id)"
+                      @click="handleDeleteRule(rule.id)"
                       class="text-red-400 hover:text-red-600 text-sm font-medium transition-colors"
                     >
                       删除
