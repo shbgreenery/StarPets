@@ -12,7 +12,7 @@ const emit = defineEmits<{
   login: [user: { id: string; username: string; isGuest: boolean }]
 }>()
 
-const { api, setUser } = useAuth()
+const { login, register } = useAuth()
 
 const mode = ref<'login' | 'register'>('login')
 const username = ref('')
@@ -51,28 +51,20 @@ async function handleSubmit() {
   }
   
   loading.value = true
-  
+
   try {
-    const endpoint = mode.value === 'login' ? '/auth/login' : '/auth/register'
-    const res = await api.post(endpoint, {
-      username: username.value.trim(),
-      password: password.value
-    })
-    
-    if (res.data.success) {
-      // 保存用户信息
-      setUser(res.data.user, res.data.token)
-      
-      emit('login', res.data.user)
-      emit('close')
-      
-      // 重置表单
-      username.value = ''
-      password.value = ''
-      confirmPassword.value = ''
-    }
+    const user = mode.value === 'login'
+      ? await login(username.value.trim(), password.value)
+      : await register(username.value.trim(), password.value)
+
+    emit('login', user)
+    emit('close')
+
+    username.value = ''
+    password.value = ''
+    confirmPassword.value = ''
   } catch (err: any) {
-    error.value = err.response?.data?.error || '操作失败，请重试'
+    error.value = err.message || '操作失败，请重试'
   } finally {
     loading.value = false
   }
