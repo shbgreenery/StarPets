@@ -15,6 +15,7 @@ export interface Student {
   student_no: string | null
   total_points: number
   pet_type: string | null
+  pet_name?: string | null
   pet_level: number
   pet_exp: number
   created_at?: number
