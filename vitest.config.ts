@@ -15,7 +15,6 @@ export default defineConfig({
         'dist/',
         '**/*.d.ts',
         '**/*.config.*',
-        'server/index.js', // 入口文件
       ]
     }
   },
