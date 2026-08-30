@@ -8,6 +8,7 @@ export interface StudentRow {
   pet_level: number; pet_exp: number;
   hunger: number; cleanliness: number; happiness: number;
   stars: number; last_decay_at: number;
+  deco_bg: string | null; deco_pendants: string[]; deco_owned: string[];
   created_at: number
 }
 export interface BadgeRow { id: string; student_id: string; pet_type: string; earned_at: number }
@@ -45,6 +46,24 @@ class PetGardenDB extends Dexie {
     )
     // v3: 去掉扣分评价后,清理存量负分规则(种子数据已只保留正分)
     this.version(3).upgrade((tx) => purgeNegativeRules(tx))
+    // v4: 装扮装饰字段(无索引),为存量行回填 null
+    this.version(4).upgrade((tx) =>
+      tx.table('students').toCollection().modify((s) => {
+        s.deco_bg ??= null
+        s.deco_pendant ??= null
+      })
+    )
+    // v5: 挂饰支持多件 + 拥有集合。迁移 v4 单值 deco_pendant → deco_pendants/deco_owned
+    this.version(5).upgrade((tx) =>
+      tx.table('students').toCollection().modify((s) => {
+        const pendants: string[] = s.deco_pendant ? [s.deco_pendant] : []
+        const owned: string[] = []
+        if (s.deco_bg) owned.push(s.deco_bg)
+        for (const p of pendants) owned.push(p)
+        s.deco_pendants = pendants
+        s.deco_owned = owned
+      })
+    )
   }
 }
 

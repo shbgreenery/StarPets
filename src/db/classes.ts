@@ -1,6 +1,8 @@
 import { db } from './index'
 import type { StudentRow } from './index'
 import type { ShopItem } from '@/data/shop'
+import type { DecorationItem } from '@/data/decorations'
+import { PENDANT_LIMIT } from '@/data/decorations'
 import { isSleeping } from '@/data/shop'
 import { calculateLevel } from '@/data/pets'
 
@@ -9,13 +11,21 @@ export const DECAY_INTERVAL = 30 * 60 * 1000
 
 // 指标兜底默认值(防旧行缺字段)
 function normalize(s: StudentRow, now: number): StudentRow {
+  // v4 残留的 deco_pendant 单值字段(类型上已移除,运行时可能存在于旧行)
+  const legacy = s as StudentRow & { deco_pendant?: string | null }
   return {
     ...s,
     hunger: s.hunger ?? 80,
     cleanliness: s.cleanliness ?? 80,
     happiness: s.happiness ?? 80,
     stars: s.stars ?? 0,
-    last_decay_at: s.last_decay_at ?? now
+    last_decay_at: s.last_decay_at ?? now,
+    deco_bg: s.deco_bg ?? null,
+    // 兼容 v4 单值:deco_pendant 存在时迁移到数组
+    deco_pendants: Array.isArray(s.deco_pendants) ? s.deco_pendants : (legacy.deco_pendant ? [legacy.deco_pendant] : []),
+    deco_owned: Array.isArray(s.deco_owned)
+      ? s.deco_owned
+      : (s.deco_bg ? [s.deco_bg] : []).concat(legacy.deco_pendant ? [legacy.deco_pendant] : [])
   }
 }
 
@@ -58,6 +68,7 @@ export async function addStudent(name: string): Promise<StudentRow> {
     id: crypto.randomUUID(), name,
     total_points: 0, pet_type: null, pet_name: null, pet_level: 1, pet_exp: 0,
     hunger: 80, cleanliness: 80, happiness: 80, stars: 0, last_decay_at: now,
+    deco_bg: null, deco_pendants: [], deco_owned: [],
     created_at: now
   }
   await db.students.add(s)
@@ -123,5 +134,66 @@ export async function buyShopItem(studentId: string, item: ShopItem): Promise<Bu
 
     await db.students.update(studentId, patch)
     return { student: { ...norm, ...patch } as StudentRow, gainedPoints, leveledUp, graduated }
+  })
+}
+
+// ---- 装扮装饰:拥有集合 + 佩戴(背景单槽,挂饰 ≤ PENDANT_LIMIT)----
+// 装饰购买:扣星加入拥有并自动戴上;不涨成长值、不动指标
+export async function buyDecoration(studentId: string, item: DecorationItem): Promise<StudentRow> {
+  return db.transaction('rw', [db.students], async () => {
+    const s = await db.students.get(studentId)
+    if (!s) throw new Error('宝贝不存在')
+    const norm = normalize(s, Date.now())
+    if (norm.stars < item.price) throw new Error('星星不足')
+
+    const owned = norm.deco_owned.includes(item.id) ? norm.deco_owned : [...norm.deco_owned, item.id]
+    const patch: Partial<StudentRow> = { stars: norm.stars - item.price, deco_owned: owned }
+    if (item.slot === 'bg') {
+      patch.deco_bg = item.id
+    } else if (!norm.deco_pendants.includes(item.id) && norm.deco_pendants.length < PENDANT_LIMIT) {
+      // 挂饰有槽位自动戴上;已满 3 个只收藏不自动戴
+      patch.deco_pendants = [...norm.deco_pendants, item.id]
+    }
+
+    await db.students.update(studentId, patch)
+    return { ...norm, ...patch } as StudentRow
+  })
+}
+
+// 戴上已拥有的装饰(免费)
+export async function wearDecoration(studentId: string, item: DecorationItem): Promise<StudentRow> {
+  return db.transaction('rw', [db.students], async () => {
+    const s = await db.students.get(studentId)
+    if (!s) throw new Error('宝贝不存在')
+    const norm = normalize(s, Date.now())
+    if (!norm.deco_owned.includes(item.id)) throw new Error('还没拥有这件装饰')
+
+    const patch: Partial<StudentRow> = {}
+    if (item.slot === 'bg') {
+      patch.deco_bg = item.id
+    } else {
+      if (norm.deco_pendants.includes(item.id)) throw new Error('这件挂饰已戴上')
+      if (norm.deco_pendants.length >= PENDANT_LIMIT) throw new Error('挂饰位已满,先卸下一个')
+      patch.deco_pendants = [...norm.deco_pendants, item.id]
+    }
+
+    await db.students.update(studentId, patch)
+    return { ...norm, ...patch } as StudentRow
+  })
+}
+
+// 卸下装饰(免费,拥有权保留)
+export async function takeOffDecoration(studentId: string, item: DecorationItem): Promise<StudentRow> {
+  return db.transaction('rw', [db.students], async () => {
+    const s = await db.students.get(studentId)
+    if (!s) throw new Error('宝贝不存在')
+    const norm = normalize(s, Date.now())
+
+    const patch: Partial<StudentRow> = {}
+    if (item.slot === 'bg') patch.deco_bg = null
+    else patch.deco_pendants = norm.deco_pendants.filter(id => id !== item.id)
+
+    await db.students.update(studentId, patch)
+    return { ...norm, ...patch } as StudentRow
   })
 }

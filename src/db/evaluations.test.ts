@@ -13,6 +13,7 @@ async function createStudentWithPet(exp = 0) {
     id: studentId, name: '张三', total_points: exp, pet_type: 'corgi', pet_name: null,
     pet_level: calculateLevel(exp), pet_exp: exp,
     hunger: 80, cleanliness: 80, happiness: 80, stars: 0, last_decay_at: now,
+    deco_bg: null, deco_pendants: [], deco_owned: [],
     created_at: now
   })
 }
@@ -52,6 +53,7 @@ describe('addEvaluation', () => {
       id: sid, name: '李四', total_points: 0, pet_type: null, pet_name: null,
       pet_level: 1, pet_exp: 0,
       hunger: 80, cleanliness: 80, happiness: 80, stars: 0, last_decay_at: now,
+      deco_bg: null, deco_pendants: [], deco_owned: [],
       created_at: now
     })
     const res = await addEvaluation({ studentId: sid, points: 1, reason: 'x', category: '学习' })

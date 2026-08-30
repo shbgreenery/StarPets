@@ -3,6 +3,7 @@ import { getLevelProgress, getPetType } from '@/data/pets'
 import PetImage from '@/components/PetImage.vue'
 import { getDisplayLevel, getLevelBgClass, getLevelBorderClass, getStudentPetImage } from '@/utils/levelStyle'
 import { isSleeping } from '@/data/shop'
+import { getDecorBgClass, getDecorPendantEmoji } from '@/data/decorations'
 import type { Student } from '@/types'
 
 interface ScoreAnimation {
@@ -63,11 +64,15 @@ const emit = defineEmits<{
 
     <!-- 宠物图片区域 -->
     <div class="aspect-square flex items-center justify-center relative rounded-t-2xl"
-      :class="student.pet_type ? 'bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100' : 'bg-gradient-to-br from-gray-100 via-slate-50 to-gray-100'"
+      :class="student.pet_type ? (getDecorBgClass(student.deco_bg) || 'bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100') : 'bg-gradient-to-br from-gray-100 via-slate-50 to-gray-100'"
     >
-      <!-- 有宠物时使用 PetImage 组件 -->
+      <!-- 有宠物时使用 PetImage 组件。宠物图不透明,有背景装饰时四周留白露出渐变 -->
       <template v-if="student.pet_type">
-        <div class="w-full h-full overflow-hidden" style="border-radius: 14px 14px 0 0; margin: -1px -1px 0 -1px; width: calc(100% + 2px);">
+        <div
+          class="w-full h-full overflow-hidden transition-all duration-300"
+          :class="student.deco_bg ? 'p-3 sm:p-4' : ''"
+          style="border-radius: 14px 14px 0 0; margin: -1px -1px 0 -1px; width: calc(100% + 2px);"
+        >
           <PetImage
             :src="getStudentPetImage(student)"
             :alt="getPetType(student.pet_type)?.name"
@@ -82,6 +87,18 @@ const emit = defineEmits<{
       <div v-else class="flex flex-col items-center">
         <span class="text-6xl pet-unknown">❓</span>
         <span class="text-xs text-gray-400 mt-2 group-hover:text-orange-400 transition-colors">点击领养</span>
+      </div>
+
+      <!-- 挂饰装饰(最多同时戴 3 个) -->
+      <div
+        v-if="student.deco_pendants?.length"
+        class="absolute top-2 left-2 z-10 flex items-center gap-1"
+      >
+        <span
+          v-for="pid in student.deco_pendants.slice(0, 3)"
+          :key="pid"
+          class="w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm shadow-md flex items-center justify-center text-2xl"
+        >{{ getDecorPendantEmoji(pid) }}</span>
       </div>
 
       <!-- 等级徽章 -->

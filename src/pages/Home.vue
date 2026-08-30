@@ -15,10 +15,11 @@ import RulesModal from '@/components/home/RulesModal.vue'
 import StudentDetailPanel from '@/components/home/StudentDetailPanel.vue'
 import ShopModal from '@/components/home/ShopModal.vue'
 import { useToast } from '@/composables/useToast'
-import { getStudents, addStudent, updateStudentPet, updateStudentPetName, deleteStudent, buyShopItem } from '@/db/classes'
+import { getStudents, addStudent, updateStudentPet, updateStudentPetName, deleteStudent, buyShopItem, buyDecoration, wearDecoration, takeOffDecoration } from '@/db/classes'
 import { getRules, addRule, deleteRule } from '@/db/rules'
 import { addEvaluation, getStudentEvaluations, getEvaluations } from '@/db/evaluations'
 import type { ShopItem } from '@/data/shop'
+import type { DecorationItem, DecorAction } from '@/data/decorations'
 import type { EvaluationRecord, Rule, Student } from '@/types'
 
 // Toast 提示
@@ -250,6 +251,35 @@ async function handleShopBuy(item: ShopItem) {
   } catch (error) {
     console.error('购买失败:', error)
     toast.error(error instanceof Error ? error.message : '购买失败')
+  }
+}
+
+// 商城装扮操作:购买 / 戴上 / 卸下。免费操作不关弹窗,方便连续换装
+async function handleDecor(action: DecorAction, item: DecorationItem) {
+  if (!shopStudent.value) return
+  const studentId = shopStudent.value.id
+  try {
+    if (action === 'buy') {
+      await buyDecoration(studentId, item)
+      toast.success(`已为 ${shopStudent.value.name} 买下「${item.name}」！`)
+    } else if (action === 'wear') {
+      await wearDecoration(studentId, item)
+      toast.success(`已为 ${shopStudent.value.name} 戴上「${item.name}」！`)
+    } else {
+      await takeOffDecoration(studentId, item)
+      toast.success(`已卸下「${item.name}」`)
+    }
+    await loadStudents()
+    // 就地刷新详情面板与商城余额/穿戴状态,弹窗保持打开
+    if (detailStudent.value) {
+      detailStudent.value = students.value.find(s => s.id === detailStudent.value?.id) || null
+    }
+    if (shopStudent.value) {
+      shopStudent.value = students.value.find(s => s.id === shopStudent.value!.id) || shopStudent.value
+    }
+  } catch (error) {
+    console.error('装饰操作失败:', error)
+    toast.error(error instanceof Error ? error.message : '操作失败')
   }
 }
 
@@ -581,6 +611,7 @@ onMounted(async () => {
       :student="shopStudent"
       @close="showShopModal = false"
       @buy="handleShopBuy"
+      @decor="handleDecor"
     />
 
     <!-- 确认对话框 -->

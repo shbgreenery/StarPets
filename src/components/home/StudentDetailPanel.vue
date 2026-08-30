@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { getLevelProgress, getPetType } from '@/data/pets'
 import { getDisplayLevel, getStudentPetImage } from '@/utils/levelStyle'
+import { getDecorBgClass, getDecorPendantEmoji } from '@/data/decorations'
 import { EVALUATION_CATEGORIES } from '@/data/categories'
 import { METRICS, isSleeping } from '@/data/shop'
 import type { EvaluationRecord, Rule, Student } from '@/types'
@@ -81,13 +82,25 @@ function formatTime(timestamp: number): string {
             </button>
           </div>
           <div class="flex items-center gap-4">
-            <div class="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+            <div
+              class="relative w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center shadow-lg"
+              :class="getDecorBgClass(student.deco_bg) || 'bg-white/20 backdrop-blur-sm'"
+            >
               <img
                 v-if="student.pet_type"
                 :src="getStudentPetImage(student)"
                 class="w-16 h-16 object-contain"
               />
               <span v-else class="text-4xl">❓</span>
+              <span
+                v-if="student.deco_pendants?.length"
+                class="absolute top-0.5 left-0.5 flex gap-0.5 text-sm drop-shadow"
+              >
+                <span
+                  v-for="pid in student.deco_pendants.slice(0, 3)"
+                  :key="pid"
+                >{{ getDecorPendantEmoji(pid) }}</span>
+              </span>
             </div>
             <div class="text-white">
               <h3 class="text-2xl font-bold">{{ student.name }}</h3>

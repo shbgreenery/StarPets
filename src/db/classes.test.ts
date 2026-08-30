@@ -1,8 +1,9 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { db, initDb, clearAll } from './index'
-import { getStudents, addStudent, deleteStudent, updateStudentPet, updateStudentPetName, buyShopItem } from './classes'
+import { getStudents, addStudent, deleteStudent, updateStudentPet, updateStudentPetName, buyShopItem, buyDecoration, wearDecoration, takeOffDecoration } from './classes'
 import { SHOP_ITEMS } from '@/data/shop'
+import { DECOR_ITEMS } from '@/data/decorations'
 
 beforeEach(async () => {
   await db.open()
@@ -22,6 +23,9 @@ describe('宝贝', () => {
     expect(s.happiness).toBe(80)
     expect(s.stars).toBe(0)
     expect(s.last_decay_at).toEqual(expect.any(Number))
+    expect(s.deco_bg).toBeNull()
+    expect(s.deco_pendants).toEqual([])
+    expect(s.deco_owned).toEqual([])
   })
 
   it('getStudents 按名字排序', async () => {
@@ -198,5 +202,112 @@ describe('商城购买', () => {
     const s = await addStudent('张三')
     await db.students.update(s.id, { stars: 5 })
     await expect(buyShopItem(s.id, chicken)).rejects.toThrow('星星不足')
+  })
+})
+
+describe('装扮装饰', () => {
+  const forest = DECOR_ITEMS.find(i => i.id === 'bg-forest')!
+  const ocean = DECOR_ITEMS.find(i => i.id === 'bg-ocean')!
+  const crown = DECOR_ITEMS.find(i => i.id === 'pendant-crown')!
+  const star = DECOR_ITEMS.find(i => i.id === 'pendant-star')!
+  const bow = DECOR_ITEMS.find(i => i.id === 'pendant-bow')!
+  const balloon = DECOR_ITEMS.find(i => i.id === 'pendant-balloon')!
+
+  it('买背景:扣星、加入拥有、自动戴上、不涨成长值', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 30, total_points: 10, pet_exp: 10, pet_level: 2 })
+    const res = await buyDecoration(s.id, forest)
+    expect(res.stars).toBe(10)
+    expect(res.deco_bg).toBe('bg-forest')
+    expect(res.deco_owned).toContain('bg-forest')
+    expect(res.total_points).toBe(10)
+    expect(res.pet_exp).toBe(10)
+    expect(res.pet_level).toBe(2)
+  })
+
+  it('买挂饰:加入拥有并自动戴上', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 30 })
+    await buyDecoration(s.id, crown)
+    const st = await db.students.get(s.id)
+    expect(st?.deco_pendants).toEqual(['pendant-crown'])
+    expect(st?.deco_owned).toContain('pendant-crown')
+    expect(st?.stars).toBe(10)
+  })
+
+  it('买新背景覆盖旧背景槽位,拥有不变', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 40 })
+    await buyDecoration(s.id, forest)
+    await buyDecoration(s.id, ocean)
+    const st = await db.students.get(s.id)
+    expect(st?.deco_bg).toBe('bg-ocean')
+    expect(st?.deco_owned).toEqual(['bg-forest', 'bg-ocean'])
+  })
+
+  it('挂饰最多同时戴 3 个:第 4 件只收藏不自动戴', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 100 })
+    await buyDecoration(s.id, crown)
+    await buyDecoration(s.id, star)
+    await buyDecoration(s.id, bow)
+    await buyDecoration(s.id, balloon)
+    const st = await db.students.get(s.id)
+    expect(st?.deco_pendants).toHaveLength(3)
+    expect(st?.deco_owned).toHaveLength(4)
+    expect(st?.deco_pendants).not.toContain('pendant-balloon')
+  })
+
+  it('卸下挂饰:移除佩戴但保留拥有', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 30 })
+    await buyDecoration(s.id, crown)
+    await takeOffDecoration(s.id, crown)
+    const st = await db.students.get(s.id)
+    expect(st?.deco_pendants).toEqual([])
+    expect(st?.deco_owned).toContain('pendant-crown')
+  })
+
+  it('卸下背景:还原默认但保留拥有', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 30 })
+    await buyDecoration(s.id, forest)
+    await takeOffDecoration(s.id, forest)
+    const st = await db.students.get(s.id)
+    expect(st?.deco_bg).toBeNull()
+    expect(st?.deco_owned).toContain('bg-forest')
+  })
+
+  it('戴上已拥有背景', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 30 })
+    await buyDecoration(s.id, forest)
+    await takeOffDecoration(s.id, forest)
+    await wearDecoration(s.id, forest)
+    expect((await db.students.get(s.id))?.deco_bg).toBe('bg-forest')
+  })
+
+  it('未拥有就戴上抛错', async () => {
+    const s = await addStudent('张三')
+    await expect(wearDecoration(s.id, crown)).rejects.toThrow('还没拥有这件装饰')
+  })
+
+  it('挂饰位已满再戴上抛错', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 100 })
+    await buyDecoration(s.id, crown)
+    await buyDecoration(s.id, star)
+    await buyDecoration(s.id, bow)
+    await buyDecoration(s.id, balloon) // 已拥有但满3不自动戴
+    await expect(wearDecoration(s.id, balloon)).rejects.toThrow('挂饰位已满')
+  })
+
+  it('星星不足拒绝购买且字段不变', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 5 })
+    await expect(buyDecoration(s.id, crown)).rejects.toThrow('星星不足')
+    const st = await db.students.get(s.id)
+    expect(st?.stars).toBe(5)
+    expect(st?.deco_pendants).toEqual([])
   })
 })
