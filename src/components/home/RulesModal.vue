@@ -26,9 +26,16 @@ watch(() => props.show, (value) => {
   }
 })
 
+// 分值只允许正值(>=1),输入 0/负数/空 时立即归位为 1
+function clampPoints() {
+  if (typeof newRulePoints.value !== 'number' || !Number.isFinite(newRulePoints.value) || newRulePoints.value < 1) {
+    newRulePoints.value = 1
+  }
+}
+
 function addRule() {
   if (!newRuleName.value.trim()) return
-  if (!Number.isFinite(newRulePoints.value) || newRulePoints.value < 1) return
+  clampPoints()
   emit('add', {
     name: newRuleName.value.trim(),
     points: newRulePoints.value,
@@ -60,14 +67,14 @@ function rulesOf(category: string): Rule[] {
           <h4 class="font-bold mb-4 flex items-center gap-2">
             <span>➕</span> 添加自定义规则
           </h4>
-          <div class="flex flex-wrap gap-3 mb-4">
+          <div class="flex flex-col sm:flex-row gap-3 mb-4">
             <input
               v-model="newRuleName"
               type="text"
               placeholder="规则名称"
-              class="flex-1 min-w-0 sm:min-w-[200px] border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
+              class="flex-1 min-w-0 border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
             />
-            <select v-model="newRuleCategory" class="border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors cursor-pointer">
+            <select v-model="newRuleCategory" class="w-full sm:w-36 border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors cursor-pointer">
               <option v-for="cat in EVALUATION_CATEGORIES" :key="cat">{{ cat }}</option>
             </select>
             <input
@@ -75,7 +82,8 @@ function rulesOf(category: string): Rule[] {
               type="number"
               min="1"
               placeholder="分值"
-              class="w-24 border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
+              @input="clampPoints"
+              class="w-full sm:w-24 border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
             />
           </div>
           <button
