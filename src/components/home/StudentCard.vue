@@ -12,9 +12,7 @@ interface ScoreAnimation {
 
 defineProps<{
   student: Student
-  batchMode: boolean
   deleteMode: boolean
-  selected: boolean
   markedForDelete: boolean
   scoreAnimation: ScoreAnimation | null
 }>()
@@ -28,7 +26,6 @@ const emit = defineEmits<{
   <div
     class="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-all duration-300 cursor-pointer relative group card-hover"
     :class="[getLevelBorderClass(getDisplayLevel(student)), {
-      'ring-2 ring-purple-400 ring-offset-2': batchMode && selected,
       'ring-2 ring-red-400 ring-offset-2': deleteMode && markedForDelete
     }]"
     @click="emit('click', student)"
@@ -56,14 +53,11 @@ const emit = defineEmits<{
     <!-- 选中标记 -->
     <Transition name="pop">
       <div
-        v-if="batchMode || deleteMode"
+        v-if="deleteMode"
         class="absolute top-3 left-3 w-7 h-7 rounded-full flex items-center justify-center z-10 shadow-md transition-all"
-        :class="batchMode
-          ? (selected ? 'bg-gradient-to-r from-purple-400 to-pink-400' : 'bg-white border-2 border-gray-300')
-          : (markedForDelete ? 'bg-gradient-to-r from-red-400 to-pink-400' : 'bg-white border-2 border-gray-300')
-        "
+        :class="markedForDelete ? 'bg-gradient-to-r from-red-400 to-pink-400' : 'bg-white border-2 border-gray-300'"
       >
-        <span v-if="(batchMode && selected) || (deleteMode && markedForDelete)" class="text-white text-sm font-bold">✓</span>
+        <span v-if="markedForDelete" class="text-white text-sm font-bold">✓</span>
       </div>
     </Transition>
 

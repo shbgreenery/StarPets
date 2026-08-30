@@ -6,10 +6,8 @@ import LoadingOverlay from '@/components/home/LoadingOverlay.vue'
 import LevelUpModal from '@/components/home/LevelUpModal.vue'
 import TopBar from '@/components/home/TopBar.vue'
 import StudentCard from '@/components/home/StudentCard.vue'
-import BatchActionBar from '@/components/home/BatchActionBar.vue'
 import DeleteStudentsBar from '@/components/home/DeleteStudentsBar.vue'
 import AddStudentModal from '@/components/home/AddStudentModal.vue'
-import EvaluationModal from '@/components/home/EvaluationModal.vue'
 import SelectPetModal from '@/components/home/SelectPetModal.vue'
 import RankingModal from '@/components/home/RankingModal.vue'
 import RecordsModal from '@/components/home/RecordsModal.vue'
@@ -19,7 +17,7 @@ import ShopModal from '@/components/home/ShopModal.vue'
 import { useToast } from '@/composables/useToast'
 import { getStudents, addStudent, updateStudentPet, updateStudentPetName, deleteStudent, buyShopItem } from '@/db/classes'
 import { getRules, addRule, deleteRule } from '@/db/rules'
-import { addEvaluation, getStudentEvaluations, getEvaluations, deleteEvaluation, deleteLatestEvaluation } from '@/db/evaluations'
+import { addEvaluation, getStudentEvaluations, getEvaluations } from '@/db/evaluations'
 import type { ShopItem } from '@/data/shop'
 import type { EvaluationRecord, Rule, Student } from '@/types'
 
@@ -32,19 +30,13 @@ const rules = ref<Rule[]>([])
 
 // 模态框显隐
 const showStudentModal = ref(false)
-const showAddModal = ref(false)
 const showRankModal = ref(false)
 const showPetModal = ref(false)
 const showRecordsModal = ref(false)
 const showRulesModal = ref(false)
 
-// 选择宠物 / 评价目标
+// 选择宠物目标
 const selectedStudent = ref<Student | null>(null)
-const selectedEvalTab = ref('学习')
-
-// 批量操作
-const batchMode = ref(false)
-const selectedStudents = ref<Set<string>>(new Set())
 const showDeleteStudentMode = ref(false)
 const deleteStudentList = ref<string[]>([])
 
@@ -271,33 +263,11 @@ function changeDetailPet() {
 
 // 学生卡片点击
 function handleStudentCardClick(student: Student) {
-  if (batchMode.value) {
-    toggleStudentSelect(student.id)
-  } else if (showDeleteStudentMode.value) {
+  if (showDeleteStudentMode.value) {
     toggleDeleteStudent(student.id)
   } else {
     openDetailPanel(student)
   }
-}
-
-function startBatchMode() {
-  batchMode.value = true
-  selectedStudents.value = new Set()
-}
-
-function cancelBatchMode() {
-  batchMode.value = false
-  selectedStudents.value = new Set()
-}
-
-function toggleStudentSelect(studentId: string) {
-  const newSet = new Set(selectedStudents.value)
-  if (newSet.has(studentId)) {
-    newSet.delete(studentId)
-  } else {
-    newSet.add(studentId)
-  }
-  selectedStudents.value = newSet
 }
 
 function toggleDeleteStudent(studentId: string) {
@@ -347,32 +317,12 @@ async function batchDeleteStudents() {
   })
 }
 
-async function batchAddPoints() {
-  if (selectedStudents.value.size === 0) return
-  selectedStudent.value = null
-  selectedEvalTab.value = '学习'
-  showAddModal.value = true
-}
-
-async function batchSubPoints() {
-  if (selectedStudents.value.size === 0) return
-  selectedStudent.value = null
-  selectedEvalTab.value = '行为'
-  showAddModal.value = true
-}
-
 // 触发评分动效
 function triggerScoreAnimation(studentId: string, points: number) {
   scoreAnimations.value.set(studentId, { points, show: true })
   setTimeout(() => {
     scoreAnimations.value.delete(studentId)
   }, 1500)
-}
-
-// 评价模态框中选择规则
-function handleEvalRule(rule: Rule) {
-  quickAdd(selectedStudent.value, rule)
-  showAddModal.value = false
 }
 
 // 详情面板中快速评分
@@ -421,53 +371,7 @@ function triggerLevelUpAnimation(student: Student, petLevel: number) {
   setTimeout(() => { showLevelUpAnimation.value = false }, 4000)
 }
 
-async function quickAdd(student: Student | null, rule: Rule) {
-  if (!student) {
-    const studentIds = Array.from(selectedStudents.value)
-    let successCount = 0
-
-    for (const studentId of studentIds) {
-      try {
-        await addEvaluation({
-          studentId: studentId,
-          points: rule.points,
-          reason: rule.name,
-          category: rule.category
-        })
-        successCount++
-        // 触发动效
-        triggerScoreAnimation(studentId, rule.points)
-      } catch (error) {
-        console.error('评价失败:', error)
-      }
-    }
-
-    showAddModal.value = false
-    toast.success(`已为 ${successCount} 个宝贝完成评价`)
-    cancelBatchMode()
-    await loadStudents()
-    return
-  }
-
-  try {
-    const res = await addEvaluation({
-      studentId: student.id,
-      points: rule.points,
-      reason: rule.name,
-      category: rule.category
-    })
-
-    // 触发动效
-    triggerScoreAnimation(student.id, rule.points)
-
-    toast.success(`评价完成，获得 ✨${res.starsGained} 星`)
-
-    await loadStudents()
-  } catch (error) {
-    console.error('评价失败:', error)
-    toast.error('评价失败，请重试')
-  }
-}// 评价记录加载与分页
+// 评价记录加载与分页
 async function loadEvaluationRecords() {
   const res = await getEvaluations(recordsPage.value, recordsPageSize)
   evaluationRecords.value = res.records
@@ -499,37 +403,6 @@ function goToPage(page: number) {
     recordsPage.value = page
     loadEvaluationRecords()
   }
-}
-
-async function undoLastEvaluation(recordId?: string) {
-  showConfirm({
-    title: '撤回评价',
-    message: '确定要撤回这条评价吗？',
-    confirmText: '撤回',
-    cancelText: '取消',
-    type: 'warning',
-    onConfirm: async () => {
-      try {
-        let res
-        if (recordId) {
-          // 撤回指定记录
-          res = await deleteEvaluation(recordId)
-        } else {
-          // 撤回最新记录
-          res = await deleteLatestEvaluation()
-        }
-
-        if (res.success) {
-          toast.success(`已撤回 ${res.undone.student_name} 的评价`)
-          await loadStudents()
-          await loadEvaluationRecords()
-        }
-      } catch (error) {
-        console.error('撤回失败:', error)
-        toast.error('撤回失败')
-      }
-    }
-  })
 }
 
 async function handleAddRule(payload: { name: string; points: number; category: string }) {
@@ -599,10 +472,8 @@ onMounted(async () => {
     <!-- 顶部导航栏 -->
     <TopBar
       :student-count="students.length"
-      :batch-mode="batchMode"
       @add-student="showStudentModal = true"
       @delete-students="startDeleteMode"
-      @start-batch="startBatchMode"
       @show-rank="showRankModal = true"
       @show-records="openRecordsModal"
       @show-rules="showRulesModal = true"
@@ -632,23 +503,13 @@ onMounted(async () => {
             v-for="student in students"
             :key="student.id"
             :student="student"
-            :batch-mode="batchMode"
             :delete-mode="showDeleteStudentMode"
-            :selected="selectedStudents.has(student.id)"
             :marked-for-delete="deleteStudentList.includes(student.id)"
             :score-animation="scoreAnimations.get(student.id) || null"
             @click="handleStudentCardClick"
           />
         </div>
       </Transition>
-
-      <!-- 批量操作栏 -->
-      <BatchActionBar
-        v-if="batchMode && selectedStudents.size > 0"
-        :count="selectedStudents.size"
-        @add="batchAddPoints"
-        @sub="batchSubPoints"
-      />
 
       <!-- 删除学生操作栏 -->
       <DeleteStudentsBar
@@ -662,17 +523,6 @@ onMounted(async () => {
       :show="showStudentModal"
       @close="showStudentModal = false"
       @submit="handleAddStudent"
-    />
-
-    <!-- 评价模态框 -->
-    <EvaluationModal
-      :show="showAddModal"
-      :rules="rules"
-      :student="selectedStudent"
-      :selected-count="selectedStudents.size"
-      :initial-tab="selectedEvalTab"
-      @close="showAddModal = false"
-      @select="handleEvalRule"
     />
 
     <!-- 选择宠物模态框 -->
@@ -698,7 +548,6 @@ onMounted(async () => {
       :total="totalRecords"
       :total-pages="totalPages"
       @close="showRecordsModal = false"
-      @undo="undoLastEvaluation"
       @prev="prevPage"
       @next="nextPage"
       @go="goToPage"

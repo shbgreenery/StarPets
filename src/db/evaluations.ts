@@ -48,31 +48,3 @@ export async function getEvaluations(page: number, pageSize: number) {
   const records = sorted.slice(offset, offset + pageSize).map(r => ({ ...r, student_name: nameMap.get(r.student_id) || '' }))
   return { records, total, page, pageSize, totalPages: Math.ceil(total / pageSize) }
 }
-
-// 撤回:回滚星星并删除记录,不动成长值
-async function undoRecord(record: EvaluationRecordRow): Promise<{ success: true; undone: EvaluationRecordRow & { student_name: string } }> {
-  const student = await db.students.get(record.student_id)
-  return db.transaction('rw', [db.students, db.evaluation_records], async () => {
-    if (student) {
-      const starRefund = record.points > 0 ? -record.points : 0
-      await db.students.update(student.id, {
-        stars: (student.stars ?? 0) + starRefund
-      })
-    }
-    await db.evaluation_records.delete(record.id)
-    return { success: true, undone: { ...record, student_name: student?.name || '' } }
-  })
-}
-
-export async function deleteEvaluation(id: string) {
-  const record = await db.evaluation_records.get(id)
-  if (!record) throw new Error('Record not found')
-  return undoRecord(record)
-}
-
-export async function deleteLatestEvaluation() {
-  const records = await db.evaluation_records.toArray()
-  const latest = records.sort((a, b) => b.timestamp - a.timestamp)[0]
-  if (!latest) throw new Error('No record found')
-  return undoRecord(latest)
-}

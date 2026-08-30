@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { db, initDb, clearAll } from './index'
-import { addEvaluation, deleteEvaluation, deleteLatestEvaluation, getStudentEvaluations, getEvaluations } from './evaluations'
+import { addEvaluation, getStudentEvaluations, getEvaluations } from './evaluations'
 import { calculateLevel } from '@/data/pets'
 
 let studentId: string
@@ -67,40 +67,10 @@ describe('星星联动', () => {
     expect((await db.students.get(studentId))?.stars).toBe(3)
   })
 
-  it('撤回加分评价回滚星星', async () => {
-    await createStudentWithPet(0)
-    const r = await addEvaluation({ studentId, points: 5, reason: 'x', category: '学习' })
-    expect((await db.students.get(studentId))?.stars).toBe(5)
-    await deleteEvaluation(r.id)
-    expect((await db.students.get(studentId))?.stars).toBe(0)
-  })
-
   it('扣分评价不给星', async () => {
     await createStudentWithPet(50)
     await addEvaluation({ studentId, points: -20, reason: 'x', category: '行为' })
     expect((await db.students.get(studentId))?.stars).toBe(0)
-  })
-})
-
-describe('撤回', () => {
-  it('撤回评价回滚星星,成长值不变', async () => {
-    await createStudentWithPet(40)
-    await addEvaluation({ studentId, points: 5, reason: 'x', category: '学习' })
-    const res = await deleteLatestEvaluation()
-    expect(res.success).toBe(true)
-    expect(res.undone.student_name).toBe('张三')
-    const s = await db.students.get(studentId)
-    expect(s?.stars).toBe(0)
-    expect(s?.total_points).toBe(40)
-    expect(s?.pet_exp).toBe(40)
-    expect(s?.pet_level).toBe(2)
-  })
-
-  it('deleteEvaluation 撤回指定记录', async () => {
-    await createStudentWithPet(0)
-    const r = await addEvaluation({ studentId, points: 10, reason: 'x', category: '学习' })
-    await deleteEvaluation(r.id)
-    expect(await db.evaluation_records.count()).toBe(0)
   })
 })
 

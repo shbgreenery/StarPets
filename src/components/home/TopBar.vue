@@ -3,13 +3,11 @@ import { ref } from 'vue'
 
 defineProps<{
   studentCount: number
-  batchMode: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'add-student'): void
   (e: 'delete-students'): void
-  (e: 'start-batch'): void
   (e: 'show-rank'): void
   (e: 'show-records'): void
   (e: 'show-rules'): void
@@ -17,7 +15,6 @@ const emit = defineEmits<{
 
 // 下拉菜单展开状态
 const showStudentMenu = ref(false)
-const showEvalMenu = ref(false)
 const showMoreMenu = ref(false)
 </script>
 
@@ -29,7 +26,7 @@ const showMoreMenu = ref(false)
       <span class="text-gradient font-bold hidden sm:inline mr-1 shrink-0">成长伙伴</span>
 
       <!-- 宝贝菜单 -->
-      <div class="relative" v-if="!batchMode">
+      <div class="relative">
         <button @click="showStudentMenu = !showStudentMenu" class="px-2 sm:px-3 py-1.5 rounded-lg text-sm bg-white/95 hover:bg-white shadow-md transition-all font-medium">
           👶 宝贝 ▾
         </button>
@@ -42,22 +39,13 @@ const showMoreMenu = ref(false)
         </Transition>
       </div>
 
-      <!-- 评价菜单 -->
-      <div class="relative" v-if="!batchMode">
-        <button @click="showEvalMenu = !showEvalMenu" class="px-2 sm:px-3 py-1.5 rounded-lg text-sm bg-white/95 hover:bg-white shadow-md transition-all font-medium">
-          ⭐ 评价 ▾
-        </button>
-        <div v-if="showEvalMenu" @click="showEvalMenu = false" class="fixed inset-0 z-40"></div>
-        <Transition name="dropdown">
-          <div v-if="showEvalMenu" class="absolute left-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-36 sm:w-40 z-50 overflow-hidden">
-            <button @click="emit('start-batch'); showEvalMenu = false" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">✅ 批量</button>
-            <button @click="emit('show-rank'); showEvalMenu = false" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">🏆 排行</button>
-          </div>
-        </Transition>
-      </div>
+      <!-- 排行入口 -->
+      <button @click="emit('show-rank')" class="px-2 sm:px-3 py-1.5 rounded-lg text-sm bg-white/95 hover:bg-white shadow-md transition-all font-medium shrink-0">
+        🏆 排行
+      </button>
 
       <!-- 更多菜单 -->
-      <div class="relative" v-if="!batchMode">
+      <div class="relative">
         <button @click="showMoreMenu = !showMoreMenu" class="px-2 sm:px-3 py-1.5 rounded-lg text-sm bg-white/95 hover:bg-white shadow-md transition-all font-medium">
           ⋯ 更多 ▾
         </button>

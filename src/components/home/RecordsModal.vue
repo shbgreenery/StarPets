@@ -11,7 +11,6 @@ defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'undo', recordId?: string): void
   (e: 'prev'): void
   (e: 'next'): void
   (e: 'go', page: number): void
@@ -31,12 +30,6 @@ function formatTime(timestamp: number): string {
           <h3 class="text-xl font-bold flex items-center gap-2">
             <span class="text-2xl">📋</span> 评价记录
           </h3>
-          <button
-            @click="emit('undo')"
-            class="px-4 py-2 text-sm text-orange-500 hover:bg-orange-50 rounded-xl font-medium transition-colors flex items-center gap-1"
-          >
-            ↩️ 撤回最新
-          </button>
         </div>
 
         <div v-if="records.length === 0" class="text-center py-16 text-gray-500">
@@ -74,16 +67,7 @@ function formatTime(timestamp: number): string {
             <!-- 底部 -->
             <div class="flex items-center justify-between text-xs text-gray-400">
               <span class="px-2 py-1 bg-gray-100 rounded-lg">{{ record.category }}</span>
-              <div class="flex items-center gap-2">
-                <span>{{ formatTime(record.timestamp) }}</span>
-                <button
-                  @click="emit('undo', record.id)"
-                  class="text-orange-500 hover:text-orange-600 hover:bg-orange-50 px-2 py-1 rounded transition-colors"
-                  title="撤回"
-                >
-                  ↩️
-                </button>
-              </div>
+              <span>{{ formatTime(record.timestamp) }}</span>
             </div>
           </div>
         </div>
