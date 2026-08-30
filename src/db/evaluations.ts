@@ -3,7 +3,6 @@ import type { EvaluationRecordRow } from './index'
 import { calculateLevel } from '@/data/pets'
 
 export interface AddEvaluationInput {
-  classId: string
   studentId: string
   points: number
   reason: string
@@ -16,7 +15,7 @@ export async function addEvaluation(input: AddEvaluationInput) {
 
   return db.transaction('rw', [db.evaluation_records, db.students, db.badges], async () => {
     await db.evaluation_records.add({
-      id, class_id: input.classId, student_id: input.studentId,
+      id, student_id: input.studentId,
       points: input.points, reason: input.reason, category: input.category, timestamp: now
     })
 
@@ -52,12 +51,12 @@ export async function getStudentEvaluations(studentId: string, pageSize = 20): P
   return records.slice(0, pageSize).map(r => ({ ...r, student_name: student?.name || '' }))
 }
 
-export async function getClassEvaluations(classId: string, page: number, pageSize: number) {
-  const all = await db.evaluation_records.where('class_id').equals(classId).toArray()
+export async function getEvaluations(page: number, pageSize: number) {
+  const all = await db.evaluation_records.toArray()
   const total = all.length
   const sorted = all.sort((a, b) => b.timestamp - a.timestamp)
   const offset = (page - 1) * pageSize
-  const students = await db.students.where('class_id').equals(classId).toArray()
+  const students = await db.students.toArray()
   const nameMap = new Map(students.map(s => [s.id, s.name]))
   const records = sorted.slice(offset, offset + pageSize).map(r => ({ ...r, student_name: nameMap.get(r.student_id) || '' }))
   return { records, total, page, pageSize, totalPages: Math.ceil(total / pageSize) }
@@ -87,8 +86,8 @@ export async function deleteEvaluation(id: string) {
   return undoRecord(record)
 }
 
-export async function deleteLatestEvaluation(classId: string) {
-  const records = await db.evaluation_records.where('class_id').equals(classId).toArray()
+export async function deleteLatestEvaluation() {
+  const records = await db.evaluation_records.toArray()
   const latest = records.sort((a, b) => b.timestamp - a.timestamp)[0]
   if (!latest) throw new Error('No record found')
   return undoRecord(latest)

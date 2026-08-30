@@ -2,37 +2,31 @@ import Dexie, { type Table } from 'dexie'
 import { DEFAULT_RULES } from '@/data/evaluation-rules'
 
 // 表行类型
-export interface ClassRow { id: string; user_id: string; name: string; created_at: number; updated_at: number }
 export interface StudentRow {
-  id: string; class_id: string; name: string; student_no: string | null;
+  id: string; name: string;
   total_points: number; pet_type: string | null; pet_name: string | null;
   pet_level: number; pet_exp: number; created_at: number
 }
 export interface BadgeRow { id: string; student_id: string; pet_type: string; earned_at: number }
 export interface RuleRow { id: string; name: string; points: number; category: string; is_custom: number; created_at: number }
-export interface EvaluationRecordRow { id: string; class_id: string; student_id: string; points: number; reason: string; category: string; timestamp: number }
+export interface EvaluationRecordRow { id: string; student_id: string; points: number; reason: string; category: string; timestamp: number }
 export interface SettingRow { key: string; value: unknown }
-export interface UserRow { id: string; username: string; password_hash: string; is_guest: number; created_at: number }
 
 class PetGardenDB extends Dexie {
-  classes!: Table<ClassRow, string>
   students!: Table<StudentRow, string>
   badges!: Table<BadgeRow, string>
   evaluation_rules!: Table<RuleRow, string>
   evaluation_records!: Table<EvaluationRecordRow, string>
   settings!: Table<SettingRow, string>
-  users!: Table<UserRow, string>
 
   constructor() {
     super('pet-garden')
     this.version(1).stores({
-      classes: 'id, name, created_at',
-      students: 'id, class_id, name, student_no, total_points',
+      students: 'id, name, total_points',
       badges: 'id, student_id, pet_type',
       evaluation_rules: 'id, category, is_custom',
-      evaluation_records: 'id, class_id, student_id, timestamp',
-      settings: 'key',
-      users: 'id, username'
+      evaluation_records: 'id, student_id, timestamp',
+      settings: 'key'
     })
   }
 }
@@ -59,11 +53,5 @@ export async function initDb() {
   const levelConfig = await db.settings.get('levelConfig')
   if (!levelConfig) {
     await db.settings.put({ key: 'levelConfig', value: [40, 60, 80, 100, 120, 140, 160] })
-  }
-
-  // 游客用户
-  const guest = await db.users.get('guest')
-  if (!guest) {
-    await db.users.put({ id: 'guest', username: 'guest', password_hash: '', is_guest: 1, created_at: Date.now() })
   }
 }

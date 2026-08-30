@@ -9,10 +9,10 @@ beforeEach(async () => {
 })
 
 describe('db schema 与初始化', () => {
-  it('有 7 张表', () => {
+  it('有 5 张表', () => {
     expect(db.tables.map(t => t.name).sort()).toEqual([
-      'badges', 'classes', 'evaluation_records', 'evaluation_rules',
-      'settings', 'students', 'users'
+      'badges', 'evaluation_records', 'evaluation_rules',
+      'settings', 'students'
     ])
   })
 
@@ -25,10 +25,5 @@ describe('db schema 与初始化', () => {
   it('初始化默认设置 levelConfig', async () => {
     const s = await db.settings.get('levelConfig')
     expect(s?.value).toEqual([40, 60, 80, 100, 120, 140, 160])
-  })
-
-  it('初始化游客用户', async () => {
-    const guest = await db.users.get('guest')
-    expect(guest?.is_guest).toBe(1)
   })
 })
