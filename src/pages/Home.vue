@@ -3,25 +3,15 @@ import { ref, onMounted, computed, nextTick } from 'vue'
 import { PET_TYPES, getPetType, getLevelProgress, calculateLevel, getPetLevelImage, getPetLevel1Image } from '@/data/pets'
 import PetImage from '@/components/PetImage.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
-import AuthModal from '@/components/AuthModal.vue'
 import { useToast } from '@/composables/useToast'
-import { useAuth } from '@/composables/useAuth'
-import { getClasses, createClass, updateClass, deleteClass, getStudents, addStudent, importStudents, updateStudentPet, updateStudentPetName, deleteStudent } from '@/db/classes'
+import { getStudents, addStudent, importStudents, updateStudentPet, updateStudentPetName, deleteStudent } from '@/db/classes'
 import { getRules, addRule, deleteRule } from '@/db/rules'
-import { addEvaluation, getStudentEvaluations, getClassEvaluations, deleteEvaluation, deleteLatestEvaluation } from '@/db/evaluations'
+import { addEvaluation, getStudentEvaluations, getEvaluations, deleteEvaluation, deleteLatestEvaluation } from '@/db/evaluations'
 
 // Types
-interface Class {
-  id: string
-  name: string
-  created_at: number
-}
-
 interface Student {
   id: string
-  class_id: string
   name: string
-  student_no: string | null
   total_points: number
   pet_type: string | null
   pet_name: string | null
@@ -32,13 +22,6 @@ interface Student {
 // Toast 提示
 const toast = useToast()
 
-// 用户认证
-const { isGuest, username, logout } = useAuth()
-const showAuthModal = ref(false)
-
-// 用户菜单
-const showUserMenu = ref(false)
-
 interface Rule {
   id: string
   name: string
@@ -48,24 +31,18 @@ interface Rule {
 }
 
 // State
-const classes = ref<Class[]>([])
-const currentClass = ref<Class | null>(null)
 const students = ref<Student[]>([])
 const rules = ref<Rule[]>([])
 const searchQuery = ref('')
 
 // Modals
-const showClassModal = ref(false)
 const showStudentModal = ref(false)
 const showImportModal = ref(false)
 const showAddModal = ref(false)
 const showRankModal = ref(false)
 const showPetModal = ref(false)
 const showRecordsModal = ref(false)
-const newClassName = ref('')
-const editingClass = ref<Class | null>(null)
 const newStudentName = ref('')
-const newStudentNo = ref('')
 const importText = ref('')
 const selectedStudent = ref<Student | null>(null)
 const adoptPetId = ref<string | null>(null)
@@ -80,7 +57,6 @@ const newRulePoints = ref(1)
 const newRuleCategory = ref('学习')
 const batchMode = ref(false)
 const selectedStudents = ref<Set<string>>(new Set())
-const showClassMenu = ref(false)
 const showStudentMenu = ref(false)
 const showEvalMenu = ref(false)
 const showDeleteStudentMode = ref(false)
@@ -88,7 +64,7 @@ const deleteStudentList = ref<string[]>([])
 const recordsPage = ref(1)
 const recordsPageSize = 20
 const totalRecords = ref(0)
-const sortBy = ref<'name' | 'studentNo' | 'progress'>('name')
+const sortBy = ref<'name' | 'progress'>('name')
 const sortOrder = ref<'asc' | 'desc'>('asc')
 const showSortMenu = ref(false)
 const showPetMenu = ref(false)
@@ -157,7 +133,7 @@ function toggleSortMenu() {
   showSortMenu.value = !showSortMenu.value
 }
 
-function setSort(by: 'name' | 'studentNo' | 'progress', order: 'asc' | 'desc') {
+function setSort(by: 'name' | 'progress', order: 'asc' | 'desc') {
   sortBy.value = by
   sortOrder.value = order
   showSortMenu.value = false
@@ -169,17 +145,12 @@ const filteredStudents = computed(() => {
   if (searchQuery.value) {
     result = result.filter(s => s.name.includes(searchQuery.value))
   }
-  
+
   result.sort((a, b) => {
     let comparison = 0
     switch (sortBy.value) {
       case 'name':
         comparison = a.name.localeCompare(b.name)
-        break
-      case 'studentNo':
-        const noA = a.student_no || ''
-        const noB = b.student_no || ''
-        comparison = noA.localeCompare(noB)
         break
       case 'progress':
         const levelA = a.pet_level || 0
@@ -193,7 +164,7 @@ const filteredStudents = computed(() => {
     }
     return sortOrder.value === 'asc' ? comparison : -comparison
   })
-  
+
   return result
 })
 
@@ -238,126 +209,24 @@ function getDisplayLevel(student: Student): number {
 }
 
 // API calls
-async function loadClasses() {
-  try {
-    classes.value = await getClasses()
-    if (classes.value.length > 0) {
-      const savedClassId = localStorage.getItem('pet-garden-current-class')
-      const savedClass = savedClassId ? classes.value.find(c => c.id === savedClassId) : null
-      
-      if (savedClass) {
-        await selectClass(savedClass)
-      } else if (!currentClass.value || !classes.value.find(c => c.id === currentClass.value?.id)) {
-        await selectClass(classes.value[0])
-      }
-    } else {
-      currentClass.value = null
-      students.value = []
-    }
-  } catch (error) {
-    console.error('加载班级失败:', error)
-  }
-}
-
-async function selectClass(cls: Class) {
-  currentClass.value = cls
-  localStorage.setItem('pet-garden-current-class', cls.id)
-  await loadStudents()
-}
-
 async function loadStudents() {
-  if (!currentClass.value) return
-  students.value = await getStudents(currentClass.value.id)
+  students.value = await getStudents()
 }
 
 async function loadRules() {
   rules.value = await getRules()
 }
 
-async function handleCreateClass() {
-  if (!newClassName.value.trim()) {
-    toast.warning('请输入班级名称')
-    return
-  }
-  try {
-    await createClass(newClassName.value.trim())
-    newClassName.value = ''
-    showClassModal.value = false
-    await loadClasses()
-    toast.success('班级创建成功！')
-  } catch (error) {
-    console.error('创建班级失败:', error)
-    toast.error('创建班级失败，请重试')
-  }
-}
-
-async function handleUpdateClass() {
-  if (!newClassName.value.trim()) {
-    toast.warning('请输入班级名称')
-    return
-  }
-  const classToEdit = editingClass.value
-  if (!classToEdit) return
-  try {
-    const newName = newClassName.value.trim()
-    await updateClass(classToEdit.id, newName)
-    // 如果当前选中的班级被修改，更新当前班级名称
-    if (currentClass.value?.id === classToEdit.id) {
-      currentClass.value = { ...currentClass.value, name: newName } as Class
-    }
-    newClassName.value = ''
-    editingClass.value = null
-    showClassModal.value = false
-    await loadClasses()
-  } catch (error) {
-    console.error('更新班级失败:', error)
-    toast.error('更新班级失败，请重试')
-  }
-}
-
-function openCreateClassModal() {
-  editingClass.value = null
-  newClassName.value = ''
-  showClassModal.value = true
-}
-
-function openEditClassModal() {
-  if (!currentClass.value) return
-  editingClass.value = currentClass.value
-  newClassName.value = currentClass.value.name
-  showClassModal.value = true
-}
-
-async function handleDeleteClass(id: string) {
-  showConfirm({
-    title: '删除班级',
-    message: '确定删除该班级？所有学生数据将一并删除！',
-    confirmText: '删除',
-    cancelText: '取消',
-    type: 'danger',
-    onConfirm: async () => {
-      await deleteClass(id)
-      if (currentClass.value?.id === id) {
-        currentClass.value = null
-        students.value = []
-      }
-      await loadClasses()
-      toast.success('班级删除成功！')
-    }
-  })
-}
-
 async function handleAddStudent() {
-  if (!newStudentName.value.trim() || !currentClass.value) return
+  if (!newStudentName.value.trim()) return
   try {
-    await addStudent(currentClass.value.id, newStudentName.value.trim(), newStudentNo.value.trim() || null)
+    await addStudent(newStudentName.value.trim())
     newStudentName.value = ''
-    newStudentNo.value = ''
     showStudentModal.value = false
     await loadStudents()
   } catch (error) {
-    console.error('添加学生失败:', error)
-    toast.error('添加学生失败，请重试')
+    console.error('添加宝贝失败:', error)
+    toast.error('添加宝贝失败，请重试')
   }
 }
 
@@ -367,31 +236,25 @@ function openImportModal() {
 }
 
 async function handleImportStudents() {
-  if (!importText.value.trim() || !currentClass.value) return
-  
+  if (!importText.value.trim()) return
+
   const lines = importText.value.trim().split('\n')
   const students = []
-  
+
   for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed) continue
-    
-    const parts = trimmed.split(/[\t,\s;]+/)
-    if (parts.length >= 2) {
-      students.push({ name: parts[0], studentNo: parts.slice(1).join('') })
-    } else if (parts.length === 1) {
-      students.push({ name: parts[0], studentNo: '' })
-    }
+    const name = line.trim()
+    if (!name) continue
+    students.push({ name })
   }
-  
+
   if (students.length === 0) {
-    toast.warning('没有识别到学生信息')
+    toast.warning('没有识别到宝贝信息')
     return
   }
-  
+
   try {
-    const res = await importStudents(currentClass.value.id, students)
-    toast.success(`成功导入 ${res.imported} 名学生`)
+    const res = await importStudents(students)
+    toast.success(`成功导入 ${res.imported} 个宝贝`)
     showImportModal.value = false
     importText.value = ''
     await loadStudents()
@@ -538,8 +401,8 @@ async function batchDeleteStudents() {
   if (deleteStudentList.value.length === 0) return
   
   showConfirm({
-    title: '删除学生',
-    message: `确定删除 ${deleteStudentList.value.length} 名学生？此操作不可恢复！`,
+    title: '删除宝贝',
+    message: `确定删除 ${deleteStudentList.value.length} 个宝贝？此操作不可恢复！`,
     confirmText: '删除',
     cancelText: '取消',
     type: 'danger',
@@ -554,7 +417,7 @@ async function batchDeleteStudents() {
         }
       }
       
-      toast.success(`已删除 ${successCount} 名学生`)
+      toast.success(`已删除 ${successCount} 个宝贝`)
       cancelDeleteMode()
       await loadStudents()
     }
@@ -591,7 +454,6 @@ async function detailQuickAdd(rule: Rule) {
   
   try {
     const res = await addEvaluation({
-      classId: currentClass.value?.id!,
       studentId: student.id,
       points: rule.points,
       reason: rule.name,
@@ -639,7 +501,6 @@ async function quickAdd(student: Student | null, rule: Rule) {
     for (const studentId of studentIds) {
       try {
         await addEvaluation({
-          classId: currentClass.value?.id!,
           studentId: studentId,
           points: rule.points,
           reason: rule.name,
@@ -654,7 +515,7 @@ async function quickAdd(student: Student | null, rule: Rule) {
     }
     
     showAddModal.value = false
-    toast.success(`已为 ${successCount} 名学生${rule.points > 0 ? '加' : '扣'}${Math.abs(rule.points)}分`)
+    toast.success(`已为 ${successCount} 个宝贝${rule.points > 0 ? '加' : '扣'}${Math.abs(rule.points)}分`)
     cancelBatchMode()
     await loadStudents()
     return
@@ -662,7 +523,6 @@ async function quickAdd(student: Student | null, rule: Rule) {
   
   try {
     const res = await addEvaluation({
-      classId: currentClass.value?.id!,
       studentId: student.id,
       points: rule.points,
       reason: rule.name,
@@ -700,8 +560,7 @@ async function quickAdd(student: Student | null, rule: Rule) {
 }
 
 async function loadEvaluationRecords() {
-  if (!currentClass.value) return
-  const res = await getClassEvaluations(currentClass.value.id, recordsPage.value, recordsPageSize)
+  const res = await getEvaluations(recordsPage.value, recordsPageSize)
   evaluationRecords.value = res.records
   totalRecords.value = res.total
 }
@@ -736,8 +595,6 @@ function goToPage(page: number) {
 }
 
 async function undoLastEvaluation(recordId?: string) {
-  if (!currentClass.value) return
-  
   showConfirm({
     title: '撤回评价',
     message: '确定要撤回这条评价吗？',
@@ -752,9 +609,9 @@ async function undoLastEvaluation(recordId?: string) {
           res = await deleteEvaluation(recordId)
         } else {
           // 撤回最新记录
-          res = await deleteLatestEvaluation(currentClass.value!.id)
+          res = await deleteLatestEvaluation()
         }
-        
+
         if (res.success) {
           toast.success(`已撤回：${res.undone.student_name} ${res.undone.points > 0 ? '+' : ''}${res.undone.points}分`)
           await loadStudents()
@@ -815,7 +672,7 @@ function getStudentPetImage(student: Student): string {
 onMounted(async () => {
   isLoading.value = true
   try {
-    await loadClasses()
+    await loadStudents()
     await loadRules()
   } finally {
     isLoading.value = false
@@ -926,20 +783,10 @@ onMounted(async () => {
       <div class="flex items-center gap-3">
         <h1 class="text-xl font-bold text-white drop-shadow-lg flex items-center gap-2">
           <span class="text-2xl animate-bounce-slow">🐾</span>
-          <span class="text-gradient">班级宠物园</span>
+          <span class="text-gradient">成长伙伴</span>
         </h1>
-        <select 
-          v-if="classes.length > 0"
-          class="border-0 rounded-xl px-4 py-2 text-sm bg-white/95 hover:bg-white shadow-md backdrop-blur cursor-pointer font-medium"
-          :value="currentClass?.id"
-          @change="selectClass(classes.find(c => c.id === ($event.target as HTMLSelectElement).value)!)"
-        >
-          <option v-for="cls in classes" :key="cls.id" :value="cls.id">
-            {{ cls.name }}
-          </option>
-        </select>
         <span class="text-sm text-white/90 font-medium bg-white/20 px-3 py-1 rounded-full">
-          {{ students.length }} 人
+          {{ students.length }} 个宝贝
         </span>
       </div>
       
@@ -978,31 +825,15 @@ onMounted(async () => {
             <div v-if="showSortMenu" class="absolute right-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-40 z-50 overflow-hidden">
               <button @click="setSort('name', 'asc')" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors" :class="sortBy === 'name' && sortOrder === 'asc' ? 'bg-gradient-to-r from-orange-50 to-pink-50 text-orange-600 font-medium' : ''">🔤 A-Z</button>
               <button @click="setSort('name', 'desc')" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors" :class="sortBy === 'name' && sortOrder === 'desc' ? 'bg-gradient-to-r from-orange-50 to-pink-50 text-orange-600 font-medium' : ''">🔤 Z-A</button>
-              <button @click="setSort('studentNo', 'asc')" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors" :class="sortBy === 'studentNo' ? 'bg-gradient-to-r from-orange-50 to-pink-50 text-orange-600 font-medium' : ''">🔢 学号</button>
               <button @click="setSort('progress', 'desc')" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors" :class="sortBy === 'progress' ? 'bg-gradient-to-r from-orange-50 to-pink-50 text-orange-600 font-medium' : ''">⭐ 进度</button>
             </div>
           </Transition>
         </div>
         
-        <!-- Class Menu -->
-        <div class="relative" v-if="!batchMode">
-          <button @click="showClassMenu = !showClassMenu" class="px-3 py-1.5 rounded-lg text-sm bg-white/95 hover:bg-white shadow-md transition-all font-medium">
-            📚 班级 ▾
-          </button>
-          <div v-if="showClassMenu" @click="showClassMenu = false" class="fixed inset-0 z-40"></div>
-          <Transition name="dropdown">
-            <div v-if="showClassMenu" class="absolute right-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-40 z-50 overflow-hidden">
-              <button @click="openCreateClassModal" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">➕ 新建</button>
-              <button v-if="currentClass" @click="openEditClassModal" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">✏️ 重命名</button>
-              <button v-if="currentClass" @click="handleDeleteClass(currentClass.id)" class="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">🗑️ 删除</button>
-            </div>
-          </Transition>
-        </div>
-        
         <!-- Student Menu -->
-        <div class="relative" v-if="currentClass && !batchMode">
+        <div class="relative" v-if="!batchMode">
           <button @click="showStudentMenu = !showStudentMenu" class="px-3 py-1.5 rounded-lg text-sm bg-white/95 hover:bg-white shadow-md transition-all font-medium">
-            👤 学生 ▾
+            👶 宝贝 ▾
           </button>
           <div v-if="showStudentMenu" @click="showStudentMenu = false" class="fixed inset-0 z-40"></div>
           <Transition name="dropdown">
@@ -1031,68 +862,25 @@ onMounted(async () => {
           </Transition>
         </div>
         
-        <!-- User Menu -->
-        <div class="relative">
-          <button @click="showUserMenu = !showUserMenu" class="w-9 h-9 rounded-full bg-white/95 hover:bg-white shadow-md transition-all flex items-center justify-center overflow-hidden">
-            <span v-if="isGuest" class="text-lg">👤</span>
-            <span v-else class="w-full h-full rounded-full bg-gradient-to-r from-orange-400 to-pink-500 flex items-center justify-center text-white text-sm font-bold">
-              {{ username.charAt(0).toUpperCase() }}
-            </span>
-          </button>
-          <div v-if="showUserMenu" @click="showUserMenu = false" class="fixed inset-0 z-40"></div>
-          <Transition name="dropdown">
-            <div v-if="showUserMenu" class="absolute right-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-44 z-50 overflow-hidden">
-              <div v-if="isGuest" class="px-3 py-2 text-sm text-gray-500 border-b border-gray-100">
-                当前为游客模式
-              </div>
-              <div v-else class="px-3 py-2 text-sm text-gray-500 border-b border-gray-100">
-                已登录: {{ username }}
-              </div>
-              <template v-if="isGuest">
-                <button @click="showAuthModal = true; showUserMenu = false" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">
-                  🔑 登录 / 注册
-                </button>
-              </template>
-              <template v-else>
-                <button @click="logout(); showUserMenu = false; loadClasses(); toast.success('已退出登录')" class="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">
-                  🚪 退出登录
-                </button>
-              </template>
-            </div>
-          </Transition>
-        </div>
       </div>
     </header>
     
     <!-- Main Content -->
     <main class="flex-1 overflow-auto p-6">
       <Transition name="fade" mode="out-in">
-        <!-- 无班级状态 -->
-        <div v-if="classes.length === 0" key="no-class" class="flex flex-col items-center justify-center min-h-[60vh]">
-          <div class="text-8xl mb-6 animate-float">🏫</div>
-          <h3 class="text-2xl font-bold text-gray-700 mb-3">还没有班级</h3>
-          <p class="text-gray-500 mb-6 text-lg">创建一个班级，开启你的宠物园之旅吧！</p>
-          <button 
-            @click="showClassModal = true"
-            class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-8 py-3 rounded-2xl hover:shadow-lg hover:scale-105 transition-all font-bold text-lg"
-          >
-            ✨ 创建第一个班级
-          </button>
-        </div>
-
-        <!-- 无学生状态 -->
-        <div v-else-if="students.length === 0" key="no-student" class="flex flex-col items-center justify-center min-h-[60vh]">
-          <div class="text-8xl mb-6 animate-float">👨‍🎓</div>
-          <h3 class="text-2xl font-bold text-gray-700 mb-3">还没有学生</h3>
-          <p class="text-gray-500 mb-6 text-lg">添加学生，让他们领养可爱的宠物吧！</p>
+        <!-- 无宝贝状态 -->
+        <div v-if="students.length === 0" key="no-student" class="flex flex-col items-center justify-center min-h-[60vh]">
+          <div class="text-8xl mb-6 animate-float">👶</div>
+          <h3 class="text-2xl font-bold text-gray-700 mb-3">还没有宝贝</h3>
+          <p class="text-gray-500 mb-6 text-lg">添加宝贝，让他们领养可爱的宠物吧！</p>
           <div class="flex gap-3">
-            <button 
+            <button
               @click="showStudentModal = true"
               class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-6 py-3 rounded-2xl hover:shadow-lg hover:scale-105 transition-all font-bold"
             >
-              ➕ 添加学生
+              ➕ 添加宝贝
             </button>
-            <button 
+            <button
               @click="openImportModal"
               class="bg-white text-gray-700 px-6 py-3 rounded-2xl hover:shadow-lg hover:scale-105 transition-all font-bold border border-gray-200"
             >
@@ -1266,48 +1054,18 @@ onMounted(async () => {
       </Transition>
     </main>
 
-    <!-- 创建/编辑班级模态框 -->
-    <Transition name="modal">
-      <div v-if="showClassModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl animate-scale-in">
-          <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-            <span class="text-2xl">🏫</span> {{ editingClass ? '编辑班级' : '创建班级' }}
-          </h3>
-          <input 
-            v-model="newClassName"
-            type="text" 
-            placeholder="输入班级名称..."
-            class="w-full border-2 border-gray-200 rounded-xl px-5 py-3 mb-6 text-lg focus:outline-none focus:border-orange-400 transition-colors"
-            @keyup.enter="editingClass ? handleUpdateClass() : handleCreateClass()"
-          />
-          <div class="flex gap-3 justify-end">
-            <button @click="showClassModal = false; editingClass = null; newClassName = ''" class="px-6 py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors">取消</button>
-            <button @click="editingClass ? handleUpdateClass() : handleCreateClass()" class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
-              {{ editingClass ? '保存' : '创建' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- 添加学生模态框 -->
+    <!-- 添加宝贝模态框 -->
     <Transition name="modal">
       <div v-if="showStudentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl animate-scale-in">
           <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-            <span class="text-2xl">👨‍🎓</span> 添加学生
+            <span class="text-2xl">👶</span> 添加宝贝
           </h3>
-          <input 
+          <input
             v-model="newStudentName"
-            type="text" 
-            placeholder="学生姓名"
-            class="w-full border-2 border-gray-200 rounded-xl px-5 py-3 mb-4 text-lg focus:outline-none focus:border-orange-400 transition-colors"
-          />
-          <input 
-            v-model="newStudentNo"
-            type="text" 
-            placeholder="学号（可选）"
-            class="w-full border-2 border-gray-200 rounded-xl px-5 py-3 mb-6 focus:outline-none focus:border-orange-400 transition-colors"
+            type="text"
+            placeholder="宝贝名字"
+            class="w-full border-2 border-gray-200 rounded-xl px-5 py-3 mb-6 text-lg focus:outline-none focus:border-orange-400 transition-colors"
           />
           <div class="flex gap-3 justify-end">
             <button @click="showStudentModal = false" class="px-6 py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors">取消</button>
@@ -1324,22 +1082,22 @@ onMounted(async () => {
       <div v-if="showImportModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl p-8 w-full max-w-xl shadow-2xl animate-scale-in">
           <h3 class="text-xl font-bold mb-2 flex items-center gap-2">
-            <span class="text-2xl">📥</span> 批量导入学生
+            <span class="text-2xl">📥</span> 批量导入宝贝
           </h3>
           <p class="text-sm text-gray-500 mb-4">
-            一行一个学生，姓名和学号用空格、逗号、Tab或分号分隔
+            一行一个宝贝名字
           </p>
-          <textarea 
+          <textarea
             v-model="importText"
-            placeholder="张三 20240001&#10;李四, 20240002&#10;王五；20240003"
+            placeholder="小宝&#10;球球&#10;豆豆"
             class="w-full border-2 border-gray-200 rounded-xl px-5 py-4 mb-4 h-48 text-sm font-mono focus:outline-none focus:border-orange-400 transition-colors"
           ></textarea>
           <div class="bg-gradient-to-r from-orange-50 to-pink-50 rounded-xl p-4 mb-6 text-sm text-gray-600">
             <p class="font-medium mb-2 flex items-center gap-2"><span>💡</span> 示例格式：</p>
             <code class="text-xs bg-white px-3 py-2 rounded-lg block text-gray-500">
-              张三 20240001<br>
-              李四,20240002<br>
-              王五；20240003
+              小宝<br>
+              球球<br>
+              豆豆
             </code>
           </div>
           <div class="flex gap-3 justify-end">
@@ -1362,7 +1120,7 @@ onMounted(async () => {
               为 <span class="text-gradient">{{ selectedStudent?.name }}</span> 评价
             </template>
             <template v-else>
-              批量评价 <span class="text-purple-500">{{ selectedStudents.size }}</span> 名学生
+              批量评价 <span class="text-purple-500">{{ selectedStudents.size }}</span> 个宝贝
             </template>
           </h3>
           
@@ -1908,12 +1666,6 @@ onMounted(async () => {
       @cancel="confirmDialog.show = false"
     />
     
-    <!-- 登录/注册模态框 -->
-    <AuthModal
-      :show="showAuthModal"
-      @close="showAuthModal = false"
-      @login="(user) => { toast.success(`欢迎，${user.username}！`); loadClasses() }"
-    />
   </div>
 </template>
 
