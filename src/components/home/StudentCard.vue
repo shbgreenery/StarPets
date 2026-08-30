@@ -100,7 +100,7 @@ const emit = defineEmits<{
     </div>
 
     <!-- 信息区域 -->
-    <div class="p-4">
+    <div class="p-3 sm:p-4">
       <!-- 学生姓名 + 宠物名 -->
       <div class="flex items-center justify-between mb-2">
         <span class="font-bold text-lg text-gray-800 group-hover:text-orange-500 transition-colors">{{ student.name }}</span>

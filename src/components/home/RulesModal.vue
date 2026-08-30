@@ -49,7 +49,7 @@ function rulesOf(category: string): Rule[] {
 <template>
   <Transition name="modal">
     <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-3xl p-8 w-full max-w-4xl max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
+      <div class="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-4xl max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
         <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
           <span class="text-2xl">⚙️</span> 管理评价规则
         </h3>
@@ -64,7 +64,7 @@ function rulesOf(category: string): Rule[] {
               v-model="newRuleName"
               type="text"
               placeholder="规则名称"
-              class="flex-1 min-w-[200px] border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
+              class="flex-1 min-w-0 sm:min-w-[200px] border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
             />
             <select v-model="newRuleCategory" class="border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors cursor-pointer">
               <option v-for="cat in EVALUATION_CATEGORIES" :key="cat">{{ cat }}</option>

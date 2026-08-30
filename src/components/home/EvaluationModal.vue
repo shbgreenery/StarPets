@@ -32,7 +32,7 @@ const currentRules = computed(() => {
 <template>
   <Transition name="modal">
     <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-3xl p-8 w-full max-w-3xl max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
+      <div class="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-3xl max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
         <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
           <span class="text-2xl">⭐</span>
           <template v-if="student">
@@ -59,13 +59,13 @@ const currentRules = computed(() => {
         </div>
 
         <!-- 规则网格 - 固定5行高度，超出显示滚动条 -->
-        <div class="h-[590px] overflow-y-auto pr-2 custom-scrollbar">
+        <div class="max-h-[50vh] sm:h-[590px] overflow-y-auto pr-2 custom-scrollbar">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3 content-start">
             <button
               v-for="rule in currentRules"
               :key="rule.id"
               @click="emit('select', rule)"
-              class="rounded-2xl p-4 text-left transition-all border-2 hover:scale-105 hover:shadow-lg active:scale-95 h-[110px]"
+              class="rounded-2xl p-4 text-left transition-all border-2 hover:scale-105 hover:shadow-lg active:scale-95 h-auto min-h-[96px] sm:h-[110px]"
               :class="rule.points > 0
                 ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 hover:border-green-400'
                 : 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200 hover:border-red-400'"

@@ -65,30 +65,30 @@ function closeDetail() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 p-6">
+  <div class="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 p-3 sm:p-6">
     <!-- 头部 -->
-    <header class="mb-8">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold text-gradient flex items-center gap-3">
-            <span class="text-4xl">🐾</span>
+    <header class="mb-6 sm:mb-8">
+      <div class="flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <h1 class="text-2xl sm:text-3xl font-bold text-gradient flex items-center gap-3">
+            <span class="text-3xl sm:text-4xl">🐾</span>
             宠物图鉴
           </h1>
-          <p class="text-gray-500 mt-2">预览所有宠物的成长形态</p>
+          <p class="text-gray-500 mt-2 text-sm sm:text-base">预览所有宠物的成长形态</p>
         </div>
-        <router-link to="/" class="px-6 py-3 bg-white rounded-xl shadow-md hover:shadow-lg transition-all font-medium text-gray-700">
+        <router-link to="/" class="px-3 py-2 sm:px-6 sm:py-3 bg-white rounded-xl shadow-md hover:shadow-lg transition-all font-medium text-gray-700 text-sm sm:text-base shrink-0">
           ← 返回首页
         </router-link>
       </div>
     </header>
 
     <!-- 分类标签 -->
-    <div class="flex gap-3 mb-8">
+    <div class="flex gap-2 sm:gap-3 mb-6 sm:mb-8 flex-wrap">
       <button
         v-for="cat in categories"
         :key="cat.id"
         @click="currentCategory = cat.id"
-        class="px-6 py-3 rounded-xl font-bold transition-all"
+        class="px-4 py-2 sm:px-6 sm:py-3 rounded-xl font-bold transition-all"
         :class="currentCategory === cat.id 
           ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow-lg' 
           : 'bg-white text-gray-600 hover:bg-gray-50 shadow-md'"
@@ -103,7 +103,7 @@ function closeDetail() {
         <span class="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-cyan-400 flex items-center justify-center text-white text-sm">🐕</span>
         普通动物
       </h2>
-      <div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-4">
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3 sm:gap-4">
         <div
           v-for="pet in normalPets"
           :key="pet.id"
@@ -134,7 +134,7 @@ function closeDetail() {
         <span class="w-8 h-8 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center text-white text-sm">✨</span>
         神兽
       </h2>
-      <div class="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-4">
+      <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3 sm:gap-4">
         <div
           v-for="pet in mythicalPets"
           :key="pet.id"
@@ -164,7 +164,7 @@ function closeDetail() {
       <div v-if="selectedPet" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="closeDetail">
         <div class="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-auto shadow-2xl">
           <!-- 头部 -->
-          <div class="bg-gradient-to-r from-orange-400 via-pink-400 to-purple-400 p-6 rounded-t-3xl flex items-center justify-between">
+          <div class="bg-gradient-to-r from-orange-400 via-pink-400 to-purple-400 p-4 sm:p-6 rounded-t-3xl flex items-center justify-between">
             <div class="flex items-center gap-4">
               <div class="w-16 h-16 rounded-2xl overflow-hidden bg-white/20 flex items-center justify-center">
                 <PetImage
@@ -189,7 +189,7 @@ function closeDetail() {
           </div>
 
           <!-- 内容 -->
-          <div class="p-6">
+          <div class="p-4 sm:p-6">
             <!-- 当前等级大图 -->
             <div class="flex flex-col md:flex-row gap-6 mb-8">
               <div class="w-full md:w-1/2">

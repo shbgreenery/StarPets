@@ -26,7 +26,7 @@ function formatTime(timestamp: number): string {
 <template>
   <Transition name="modal">
     <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-3xl p-8 w-full max-w-4xl max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
+      <div class="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-4xl max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-xl font-bold flex items-center gap-2">
             <span class="text-2xl">📋</span> 评价记录
@@ -89,11 +89,11 @@ function formatTime(timestamp: number): string {
         </div>
 
         <!-- 分页 -->
-        <div v-if="totalPages > 1" class="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
+        <div v-if="totalPages > 1" class="flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 pt-6 border-t border-gray-100">
           <div class="text-sm text-gray-500">
             共 <span class="font-medium">{{ total }}</span> 条记录
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap justify-center">
             <button
               @click="emit('prev')"
               :disabled="page <= 1"

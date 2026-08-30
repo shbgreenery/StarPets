@@ -25,18 +25,18 @@ defineProps<{
         <div class="absolute inset-0 bg-gradient-to-r from-orange-400 via-pink-400 to-purple-400 rounded-full blur-3xl opacity-60 animate-pulse"></div>
 
         <!-- 主内容 -->
-        <div class="relative bg-white/95 backdrop-blur-xl rounded-3xl p-10 text-center shadow-2xl border-4 max-w-md"
+        <div class="relative bg-white/95 backdrop-blur-xl rounded-3xl p-6 sm:p-10 text-center shadow-2xl border-4 max-w-md"
           :class="info.level >= 8 ? 'border-yellow-400 shadow-yellow-400/50' : info.level >= 5 ? 'border-purple-400 shadow-purple-400/50' : 'border-orange-400 shadow-orange-400/50'"
         >
           <!-- 标题 -->
-          <h2 class="text-3xl font-bold mb-2"
+          <h2 class="text-2xl sm:text-3xl font-bold mb-2"
             :class="info.level >= 8 ? 'text-gradient bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 bg-clip-text text-transparent' : 'text-gradient'"
           >
             {{ info.level >= 8 ? '恭喜毕业！' : '升级啦！' }}
           </h2>
 
           <!-- 宠物进化动画区域 -->
-          <div class="relative w-48 h-48 mx-auto my-6">
+          <div class="relative w-36 h-36 sm:w-48 sm:h-48 mx-auto my-6">
             <!-- 进化光环 - 改为圆角矩形与图片风格一致 -->
             <div class="absolute inset-0 rounded-3xl bg-gradient-to-r from-orange-300 via-pink-300 to-purple-300 opacity-50 animate-spin" style="animation-duration: 3s"></div>
             <div class="absolute inset-2 rounded-3xl bg-gradient-to-r from-yellow-300 via-orange-300 to-pink-300 opacity-40 animate-spin" style="animation-duration: 2s; animation-direction: reverse"></div>

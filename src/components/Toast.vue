@@ -43,7 +43,7 @@ onMounted(() => {
       class="fixed top-6 left-1/2 -translate-x-1/2 z-50"
     >
       <div 
-        class="px-6 py-4 rounded-2xl shadow-2xl text-white font-medium flex items-center gap-3 min-w-[300px] max-w-[500px]"
+        class="px-4 sm:px-6 py-4 rounded-2xl shadow-2xl text-white font-medium flex items-center gap-3 min-w-0 w-[calc(100vw-2rem)] max-w-[500px]"
         :class="`bg-gradient-to-r ${colors[props.type]}`"
       >
         <span class="text-2xl">{{ icons[props.type] }}</span>

@@ -15,7 +15,7 @@ const emit = defineEmits<{
 <template>
   <Transition name="modal">
     <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-3xl p-8 w-full max-w-lg max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
+      <div class="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-lg max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
         <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
           <span class="text-2xl">🏆</span> 积分排行榜
         </h3>

@@ -36,24 +36,24 @@ const icons = {
 <template>
   <Transition name="modal">
     <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="emit('cancel')">
-      <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+      <div class="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-md shadow-2xl">
         <div class="flex items-center gap-3 mb-4">
           <span class="text-3xl">{{ icons[type] }}</span>
           <h3 class="text-xl font-bold text-gray-800">{{ title }}</h3>
         </div>
         
-        <p class="text-gray-600 text-lg mb-8">{{ message }}</p>
+        <p class="text-gray-600 text-base sm:text-lg mb-6 sm:mb-8">{{ message }}</p>
         
-        <div class="flex gap-3 justify-end">
-          <button 
-            @click="emit('cancel')" 
-            class="px-6 py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors rounded-xl hover:bg-gray-100"
+        <div class="flex flex-col sm:flex-row gap-3 sm:justify-end">
+          <button
+            @click="emit('cancel')"
+            class="flex-1 sm:flex-none px-4 sm:px-6 py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors rounded-xl hover:bg-gray-100"
           >
             {{ cancelText }}
           </button>
-          <button 
-            @click="emit('confirm')" 
-            class="text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all"
+          <button
+            @click="emit('confirm')"
+            class="flex-1 sm:flex-none text-white px-4 sm:px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all"
             :class="`bg-gradient-to-r ${colors[type]}`"
           >
             {{ confirmText }}

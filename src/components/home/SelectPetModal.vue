@@ -34,7 +34,7 @@ function confirmAdopt() {
 <template>
   <Transition name="modal">
     <div v-if="show" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-3xl p-6 w-full max-w-3xl max-h-[90vh] overflow-auto shadow-2xl animate-scale-in">
+      <div class="bg-white rounded-3xl p-4 sm:p-6 w-full max-w-3xl max-h-[90vh] overflow-auto shadow-2xl animate-scale-in">
         <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
           <span class="text-3xl">🐾</span>
           <span>为 <span class="text-gradient bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{{ student?.name }}</span> 选择宠物伙伴</span>

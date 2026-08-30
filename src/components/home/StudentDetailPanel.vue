@@ -56,16 +56,16 @@ function formatTime(timestamp: number): string {
     <div v-if="show && student" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="emit('close')">
       <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-auto shadow-2xl animate-scale-in">
         <!-- 头部 -->
-        <div class="relative bg-gradient-to-r from-orange-400 via-pink-400 to-purple-400 p-6 rounded-t-3xl">
+        <div class="relative bg-gradient-to-r from-orange-400 via-pink-400 to-purple-400 p-4 sm:p-6 rounded-t-3xl">
           <!-- 顶部操作按钮 -->
           <div class="absolute top-4 right-4 flex gap-2">
             <button v-if="student.pet_type" @click="startEditName()" class="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-full flex items-center gap-1.5 text-white text-sm transition-colors" title="改名字">
               <span>✏️</span>
-              <span class="font-medium">改名</span>
+              <span class="font-medium hidden sm:inline">改名</span>
             </button>
             <button @click="emit('changePet')" class="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-full flex items-center gap-1.5 text-white text-sm transition-colors" title="更换宠物">
               <span>🐾</span>
-              <span class="font-medium">换宠物</span>
+              <span class="font-medium hidden sm:inline">换宠物</span>
             </button>
             <button @click="emit('close')" class="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white text-xl transition-colors" title="关闭">
               ×
@@ -121,7 +121,7 @@ function formatTime(timestamp: number): string {
         </div>
 
         <!-- 快速评分 -->
-        <div class="p-6 border-b border-gray-100">
+        <div class="p-4 sm:p-6 border-b border-gray-100">
           <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
             <span>⚡</span> 快速评价
           </h4>
@@ -140,13 +140,13 @@ function formatTime(timestamp: number): string {
             </button>
           </div>
           <!-- 规则按钮 - 每行5个，固定5行高度 -->
-          <div class="h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-            <div class="grid grid-cols-5 gap-2 content-start">
+          <div class="max-h-[45vh] sm:h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+            <div class="grid grid-cols-3 sm:grid-cols-5 gap-2 content-start">
               <button
                 v-for="rule in rules.filter(r => r.category === evalTab)"
                 :key="rule.id"
                 @click="emit('quickAdd', rule)"
-                class="rounded-xl p-2 text-center transition-all border-2 hover:scale-105 active:scale-95 h-[70px]"
+                class="rounded-xl p-2 text-center transition-all border-2 hover:scale-105 active:scale-95 h-auto min-h-[60px] sm:h-[70px]"
                 :class="rule.points > 0
                   ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 hover:border-green-400'
                   : 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200 hover:border-red-400'"
@@ -164,7 +164,7 @@ function formatTime(timestamp: number): string {
         </div>
 
         <!-- 最近记录 -->
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
           <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
             <span>📋</span> 最近记录
           </h4>

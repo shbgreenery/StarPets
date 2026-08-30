@@ -27,7 +27,6 @@ const toast = useToast()
 // State
 const students = ref<Student[]>([])
 const rules = ref<Rule[]>([])
-const searchQuery = ref('')
 
 // 模态框显隐
 const showStudentModal = ref(false)
@@ -106,11 +105,6 @@ const scoreAnimations = ref<Map<string, { points: number, show: boolean }>>(new 
 const studentRecords = ref<EvaluationRecord[]>([])
 
 // Computed
-const filteredStudents = computed(() => {
-  if (!searchQuery.value) return students.value
-  return students.value.filter(s => s.name.includes(searchQuery.value))
-})
-
 // 排行榜（按积分倒序）
 const ranking = computed(() => {
   return [...students.value].sort((a, b) => b.total_points - a.total_points)
@@ -572,7 +566,6 @@ onMounted(async () => {
     <!-- 顶部导航栏 -->
     <TopBar
       :student-count="students.length"
-      v-model:search-query="searchQuery"
       :batch-mode="batchMode"
       @add-student="showStudentModal = true"
       @delete-students="startDeleteMode"
@@ -583,17 +576,17 @@ onMounted(async () => {
     />
 
     <!-- Main Content -->
-    <main class="flex-1 overflow-auto p-6">
+    <main class="flex-1 overflow-auto p-3 sm:p-6">
       <Transition name="fade" mode="out-in">
         <!-- 无宝贝状态 -->
-        <div v-if="students.length === 0" key="no-student" class="flex flex-col items-center justify-center min-h-[60vh]">
-          <div class="text-8xl mb-6 animate-float">👶</div>
+        <div v-if="students.length === 0" key="no-student" class="flex flex-col items-center justify-center min-h-[40vh]">
+          <div class="text-6xl sm:text-8xl mb-6 animate-float">👶</div>
           <h3 class="text-2xl font-bold text-gray-700 mb-3">还没有宝贝</h3>
           <p class="text-gray-500 mb-6 text-lg">添加宝贝，让他们领养可爱的宠物吧！</p>
           <div class="flex gap-3">
             <button
               @click="showStudentModal = true"
-              class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-6 py-3 rounded-2xl hover:shadow-lg hover:scale-105 transition-all font-bold"
+              class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-4 py-2.5 sm:px-6 sm:py-3 rounded-2xl hover:shadow-lg hover:scale-105 transition-all font-bold"
             >
               ➕ 添加宝贝
             </button>
@@ -601,9 +594,9 @@ onMounted(async () => {
         </div>
 
         <!-- 学生列表 -->
-        <div v-else key="students" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
+        <div v-else key="students" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-5">
           <StudentCard
-            v-for="student in filteredStudents"
+            v-for="student in students"
             :key="student.id"
             :student="student"
             :batch-mode="batchMode"
