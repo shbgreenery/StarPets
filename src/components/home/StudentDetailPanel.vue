@@ -90,6 +90,7 @@ function formatTime(timestamp: number): string {
                 v-if="student.pet_type"
                 :src="getStudentPetImage(student)"
                 class="w-16 h-16 object-contain"
+                :class="student.deco_bg ? 'rounded-xl' : ''"
               />
               <span v-else class="text-4xl">❓</span>
               <span

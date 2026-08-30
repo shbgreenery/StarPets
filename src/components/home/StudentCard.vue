@@ -80,6 +80,7 @@ const emit = defineEmits<{
             :rounded="false"
             :show-loading="true"
             class="w-full h-full"
+            :class="student.deco_bg ? 'rounded-2xl' : ''"
           />
         </div>
       </template>
