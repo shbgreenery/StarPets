@@ -8,7 +8,6 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'add-student'): void
   (e: 'delete-students'): void
-  (e: 'show-rank'): void
   (e: 'show-records'): void
   (e: 'show-rules'): void
 }>()
@@ -38,11 +37,6 @@ const showMoreMenu = ref(false)
           </div>
         </Transition>
       </div>
-
-      <!-- 排行入口 -->
-      <button @click="emit('show-rank')" class="px-2 sm:px-3 py-1.5 rounded-lg text-sm bg-white/95 hover:bg-white shadow-md transition-all font-medium shrink-0">
-        🏆 排行
-      </button>
 
       <!-- 更多菜单 -->
       <div class="relative">

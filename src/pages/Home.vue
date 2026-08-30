@@ -9,7 +9,6 @@ import StudentCard from '@/components/home/StudentCard.vue'
 import DeleteStudentsBar from '@/components/home/DeleteStudentsBar.vue'
 import AddStudentModal from '@/components/home/AddStudentModal.vue'
 import SelectPetModal from '@/components/home/SelectPetModal.vue'
-import RankingModal from '@/components/home/RankingModal.vue'
 import RecordsModal from '@/components/home/RecordsModal.vue'
 import RulesModal from '@/components/home/RulesModal.vue'
 import StudentDetailPanel from '@/components/home/StudentDetailPanel.vue'
@@ -31,7 +30,6 @@ const rules = ref<Rule[]>([])
 
 // 模态框显隐
 const showStudentModal = ref(false)
-const showRankModal = ref(false)
 const showPetModal = ref(false)
 const showRecordsModal = ref(false)
 const showRulesModal = ref(false)
@@ -104,11 +102,6 @@ const scoreAnimations = ref<Map<string, { points: number, show: boolean }>>(new 
 const studentRecords = ref<EvaluationRecord[]>([])
 
 // Computed
-// 排行榜（按积分倒序）
-const ranking = computed(() => {
-  return [...students.value].sort((a, b) => b.total_points - a.total_points)
-})
-
 // 记录总页数
 const totalPages = computed(() => {
   return Math.ceil(totalRecords.value / recordsPageSize)
@@ -504,7 +497,6 @@ onMounted(async () => {
       :student-count="students.length"
       @add-student="showStudentModal = true"
       @delete-students="startDeleteMode"
-      @show-rank="showRankModal = true"
       @show-records="openRecordsModal"
       @show-rules="showRulesModal = true"
     />
@@ -561,13 +553,6 @@ onMounted(async () => {
       :student="selectedStudent"
       @close="closePetModal"
       @confirm="handleAdopt"
-    />
-
-    <!-- 排行榜模态框 -->
-    <RankingModal
-      :show="showRankModal"
-      :ranking="ranking"
-      @close="showRankModal = false"
     />
 
     <!-- 评价记录模态框 -->
