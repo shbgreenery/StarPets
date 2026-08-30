@@ -1,73 +1,63 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue'
-import { PET_TYPES, getPetType, getLevelProgress, calculateLevel, getPetLevelImage, getPetLevel1Image } from '@/data/pets'
-import PetImage from '@/components/PetImage.vue'
+import { ref, computed, onMounted } from 'vue'
+import { getPetType } from '@/data/pets'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import LoadingOverlay from '@/components/home/LoadingOverlay.vue'
+import LevelUpModal from '@/components/home/LevelUpModal.vue'
+import TopBar from '@/components/home/TopBar.vue'
+import StudentCard from '@/components/home/StudentCard.vue'
+import BatchActionBar from '@/components/home/BatchActionBar.vue'
+import DeleteStudentsBar from '@/components/home/DeleteStudentsBar.vue'
+import AddStudentModal from '@/components/home/AddStudentModal.vue'
+import ImportStudentsModal from '@/components/home/ImportStudentsModal.vue'
+import EvaluationModal from '@/components/home/EvaluationModal.vue'
+import SelectPetModal from '@/components/home/SelectPetModal.vue'
+import RankingModal from '@/components/home/RankingModal.vue'
+import RecordsModal from '@/components/home/RecordsModal.vue'
+import RulesModal from '@/components/home/RulesModal.vue'
+import StudentDetailPanel from '@/components/home/StudentDetailPanel.vue'
 import { useToast } from '@/composables/useToast'
 import { getStudents, addStudent, importStudents, updateStudentPet, updateStudentPetName, deleteStudent } from '@/db/classes'
 import { getRules, addRule, deleteRule } from '@/db/rules'
 import { addEvaluation, getStudentEvaluations, getEvaluations, deleteEvaluation, deleteLatestEvaluation } from '@/db/evaluations'
-
-// Types
-interface Student {
-  id: string
-  name: string
-  total_points: number
-  pet_type: string | null
-  pet_name: string | null
-  pet_level: number
-  pet_exp: number
-}
+import type { EvaluationRecord, Rule, Student } from '@/types'
 
 // Toast 提示
 const toast = useToast()
-
-interface Rule {
-  id: string
-  name: string
-  points: number
-  category: string
-  is_custom?: number
-}
 
 // State
 const students = ref<Student[]>([])
 const rules = ref<Rule[]>([])
 const searchQuery = ref('')
 
-// Modals
+// 模态框显隐
 const showStudentModal = ref(false)
 const showImportModal = ref(false)
 const showAddModal = ref(false)
 const showRankModal = ref(false)
 const showPetModal = ref(false)
 const showRecordsModal = ref(false)
-const newStudentName = ref('')
-const importText = ref('')
-const selectedStudent = ref<Student | null>(null)
-const adoptPetId = ref<string | null>(null)
-const adoptPetName = ref('')
-const editingPetName = ref(false)
-const editPetNameValue = ref('')
-const evaluationRecords = ref<any[]>([])
-const selectedEvalTab = ref('学习')
 const showRulesModal = ref(false)
-const newRuleName = ref('')
-const newRulePoints = ref(1)
-const newRuleCategory = ref('学习')
+
+// 选择宠物 / 评价目标
+const selectedStudent = ref<Student | null>(null)
+const selectedEvalTab = ref('学习')
+
+// 批量操作
 const batchMode = ref(false)
 const selectedStudents = ref<Set<string>>(new Set())
-const showStudentMenu = ref(false)
-const showEvalMenu = ref(false)
 const showDeleteStudentMode = ref(false)
 const deleteStudentList = ref<string[]>([])
+
+// 评价记录与分页
+const evaluationRecords = ref<EvaluationRecord[]>([])
 const recordsPage = ref(1)
 const recordsPageSize = 20
 const totalRecords = ref(0)
+
+// 排序
 const sortBy = ref<'name' | 'progress'>('name')
 const sortOrder = ref<'asc' | 'desc'>('asc')
-const showSortMenu = ref(false)
-const showPetMenu = ref(false)
 
 // 确认对话框状态
 const confirmDialog = ref({
@@ -103,41 +93,23 @@ function showConfirm(options: {
   }
 }
 
-// 图片加载状态（用于升级动画）
-const levelUpImagesLoaded = ref({ prev: false, current: false })
+// 升级动画状态
 const levelUpPhase = ref<'show-prev' | 'transition' | 'show-current'>('show-prev')
-
-// 动画状态
 const showLevelUpAnimation = ref(false)
 const levelUpInfo = ref({ name: '', level: 0, petType: '', prevLevel: 0 })
-const isLoaded = ref(false)
-const isLoading = ref(true)
 
-// 图片加载状态
-const imageLoaded = ref<Record<string, boolean>>({})
+// 加载状态
+const isLoading = ref(true)
 
 // 详情面板
 const showDetailPanel = ref(false)
 const detailStudent = ref<Student | null>(null)
-const detailEvalTab = ref('学习')
 
 // 评分动效
 const scoreAnimations = ref<Map<string, { points: number, show: boolean }>>(new Map())
 
 // 学生评价记录
-const studentRecords = ref<any[]>([])
-
-
-
-function toggleSortMenu() {
-  showSortMenu.value = !showSortMenu.value
-}
-
-function setSort(by: 'name' | 'progress', order: 'asc' | 'desc') {
-  sortBy.value = by
-  sortOrder.value = order
-  showSortMenu.value = false
-}
+const studentRecords = ref<EvaluationRecord[]>([])
 
 // Computed
 const filteredStudents = computed(() => {
@@ -168,44 +140,22 @@ const filteredStudents = computed(() => {
   return result
 })
 
-const categories = ['学习', '行为', '健康', '其他']
-
-const currentCategoryRules = computed(() => {
-  return rules.value.filter(r => r.category === selectedEvalTab.value)
-})
-
-
-
+// 排行榜（按积分倒序）
 const ranking = computed(() => {
   return [...students.value].sort((a, b) => b.total_points - a.total_points)
 })
 
-function getLevelBgClass(level: number): string {
-  if (level >= 10) return 'from-yellow-400 via-amber-400 to-orange-400'
-  if (level >= 7) return 'from-pink-400 via-rose-400 to-red-400'
-  if (level >= 5) return 'from-purple-400 via-violet-400 to-indigo-400'
-  if (level >= 3) return 'from-blue-400 via-cyan-400 to-teal-400'
-  return 'from-gray-400 via-slate-400 to-zinc-400'
-}
+// 记录总页数
+const totalPages = computed(() => {
+  return Math.ceil(totalRecords.value / recordsPageSize)
+})
 
-// 等级边框样式 - 每个等级都不同
-function getLevelBorderClass(level: number): string {
-  const borders: Record<number, string> = {
-    1: 'border border-gray-200', // 浅灰色细边框
-    2: 'border-2 border-gray-300', // 灰色
-    3: 'border-2 border-blue-400 shadow-md shadow-blue-400/10', // 蓝色
-    4: 'border-2 border-cyan-400 shadow-md shadow-cyan-400/15', // 青色
-    5: 'border-2 border-purple-400 shadow-lg shadow-purple-400/20', // 紫色
-    6: 'border-2 border-pink-400 shadow-lg shadow-pink-400/25', // 粉色
-    7: 'border-2 border-rose-400 shadow-xl shadow-rose-400/30', // 红色
-    8: 'border-3 border-yellow-400 shadow-xl shadow-yellow-400/40', // 金色
-  }
-  return borders[level] || ''
-}
+// 排序状态（传递给顶部导航）
+const sort = computed(() => ({ by: sortBy.value, order: sortOrder.value }))
 
-// 计算显示等级（基于经验值实时计算，修复数据不一致问题）
-function getDisplayLevel(student: Student): number {
-  return calculateLevel(student.pet_exp)
+function handleSortChange(value: { by: 'name' | 'progress'; order: 'asc' | 'desc' }) {
+  sortBy.value = value.by
+  sortOrder.value = value.order
 }
 
 // API calls
@@ -217,11 +167,9 @@ async function loadRules() {
   rules.value = await getRules()
 }
 
-async function handleAddStudent() {
-  if (!newStudentName.value.trim()) return
+async function handleAddStudent(name: string) {
   try {
-    await addStudent(newStudentName.value.trim())
-    newStudentName.value = ''
+    await addStudent(name)
     showStudentModal.value = false
     await loadStudents()
   } catch (error) {
@@ -230,33 +178,25 @@ async function handleAddStudent() {
   }
 }
 
-function openImportModal() {
-  importText.value = ''
-  showImportModal.value = true
-}
-
-async function handleImportStudents() {
-  if (!importText.value.trim()) return
-
-  const lines = importText.value.trim().split('\n')
-  const students = []
+async function handleImportStudents(text: string) {
+  const lines = text.trim().split('\n')
+  const list: { name: string }[] = []
 
   for (const line of lines) {
     const name = line.trim()
     if (!name) continue
-    students.push({ name })
+    list.push({ name })
   }
 
-  if (students.length === 0) {
+  if (list.length === 0) {
     toast.warning('没有识别到宝贝信息')
     return
   }
 
   try {
-    const res = await importStudents(students)
+    const res = await importStudents(list)
     toast.success(`成功导入 ${res.imported} 个宝贝`)
     showImportModal.value = false
-    importText.value = ''
     await loadStudents()
   } catch (error) {
     console.error('导入失败:', error)
@@ -266,26 +206,18 @@ async function handleImportStudents() {
 
 function openPetSelect(student: Student) {
   selectedStudent.value = student
-  adoptPetId.value = null
-  adoptPetName.value = student.pet_name || ''
   showPetModal.value = true
 }
 
-function selectPet(petId: string) {
-  adoptPetId.value = petId
-}
-
-async function confirmAdopt() {
-  if (!selectedStudent.value || !adoptPetId.value) return
+async function handleAdopt(payload: { petId: string; petName: string }) {
+  if (!selectedStudent.value) return
   try {
-    const petName = adoptPetName.value.trim() || undefined
-    await updateStudentPet(selectedStudent.value.id, adoptPetId.value, petName)
-    const pet = getPetType(adoptPetId.value)
+    const petName = payload.petName.trim() || undefined
+    await updateStudentPet(selectedStudent.value.id, payload.petId, petName)
+    const pet = getPetType(payload.petId)
     toast.success(`🎉 ${selectedStudent.value.name} 领养了一只 ${pet?.name || '宠物'}！`)
     showPetModal.value = false
     selectedStudent.value = null
-    adoptPetId.value = null
-    adoptPetName.value = ''
     await loadStudents()
     // 更新详情面板中的学生信息
     if (detailStudent.value) {
@@ -297,23 +229,16 @@ async function confirmAdopt() {
   }
 }
 
-function startEditPetName() {
-  if (!detailStudent.value) return
-  editingPetName.value = true
-  editPetNameValue.value = detailStudent.value.pet_name || ''
-}
-
-async function savePetName() {
+async function savePetName(name: string) {
   if (!detailStudent.value) return
   try {
-    const petName = editPetNameValue.value.trim() || null
+    const petName = name.trim() || null
     await updateStudentPetName(detailStudent.value.id, petName)
     detailStudent.value.pet_name = petName
     const idx = students.value.findIndex(s => s.id === detailStudent.value!.id)
     if (idx !== -1) {
       students.value[idx] = { ...students.value[idx], pet_name: petName }
     }
-    editingPetName.value = false
     toast.success('宠物名字已更新')
   } catch (error) {
     console.error('改名字失败:', error)
@@ -339,9 +264,8 @@ async function openDetailPanel(student: Student) {
     return
   }
   detailStudent.value = student
-  detailEvalTab.value = '学习'
   showDetailPanel.value = true
-  
+
   // 加载该学生的评价记录
   await loadStudentRecords(student.id)
 }
@@ -361,6 +285,25 @@ function closeDetailPanel() {
   showDetailPanel.value = false
   detailStudent.value = null
   studentRecords.value = []
+}
+
+// 详情面板：更换宠物
+function changeDetailPet() {
+  if (!detailStudent.value) return
+  const student = detailStudent.value
+  closeDetailPanel()
+  openPetSelect(student)
+}
+
+// 学生卡片点击
+function handleStudentCardClick(student: Student) {
+  if (batchMode.value) {
+    toggleStudentSelect(student.id)
+  } else if (showDeleteStudentMode.value) {
+    toggleDeleteStudent(student.id)
+  } else {
+    openDetailPanel(student)
+  }
 }
 
 function startBatchMode() {
@@ -397,9 +340,15 @@ function cancelDeleteMode() {
   deleteStudentList.value = []
 }
 
+// 进入删除模式
+function startDeleteMode() {
+  showDeleteStudentMode.value = true
+  deleteStudentList.value = []
+}
+
 async function batchDeleteStudents() {
   if (deleteStudentList.value.length === 0) return
-  
+
   showConfirm({
     title: '删除宝贝',
     message: `确定删除 ${deleteStudentList.value.length} 个宝贝？此操作不可恢复！`,
@@ -416,7 +365,7 @@ async function batchDeleteStudents() {
           console.error('删除失败:', error)
         }
       }
-      
+
       toast.success(`已删除 ${successCount} 个宝贝`)
       cancelDeleteMode()
       await loadStudents()
@@ -446,12 +395,18 @@ function triggerScoreAnimation(studentId: string, points: number) {
   }, 1500)
 }
 
+// 评价模态框中选择规则
+function handleEvalRule(rule: Rule) {
+  quickAdd(selectedStudent.value, rule)
+  showAddModal.value = false
+}
+
 // 详情面板中快速评分
 async function detailQuickAdd(rule: Rule) {
   if (!detailStudent.value) return
-  
+
   const student = detailStudent.value
-  
+
   try {
     const res = await addEvaluation({
       studentId: student.id,
@@ -459,32 +414,19 @@ async function detailQuickAdd(rule: Rule) {
       reason: rule.name,
       category: rule.category
     })
-    
+
     // 触发卡片动效
     triggerScoreAnimation(student.id, rule.points)
-    
+
     if (res.levelUp) {
-      levelUpInfo.value = { 
-        name: student.name, 
-        level: res.petLevel,
-        petType: student.pet_type || '',
-        prevLevel: res.petLevel - 1
-      }
-      levelUpImagesLoaded.value = { prev: false, current: false }
-      levelUpPhase.value = 'show-prev'
-      showLevelUpAnimation.value = true
-      
-      // 动画时序控制
-      setTimeout(() => { levelUpPhase.value = 'transition' }, 500)
-      setTimeout(() => { levelUpPhase.value = 'show-current' }, 1500)
-      setTimeout(() => { showLevelUpAnimation.value = false }, 4000)
+      triggerLevelUpAnimation(student, res.petLevel)
     }
     if (res.graduated) {
       toast.success(`🎓 恭喜！${student.name} 的宠物毕业了，获得了专属徽章！`)
     }
-    
+
     await loadStudents()
-    
+
     // 关闭详情面板
     closeDetailPanel()
   } catch (error) {
@@ -493,11 +435,28 @@ async function detailQuickAdd(rule: Rule) {
   }
 }
 
+// 触发升级动画
+function triggerLevelUpAnimation(student: Student, petLevel: number) {
+  levelUpInfo.value = {
+    name: student.name,
+    level: petLevel,
+    petType: student.pet_type || '',
+    prevLevel: petLevel - 1
+  }
+  levelUpPhase.value = 'show-prev'
+  showLevelUpAnimation.value = true
+
+  // 动画时序控制
+  setTimeout(() => { levelUpPhase.value = 'transition' }, 500)
+  setTimeout(() => { levelUpPhase.value = 'show-current' }, 1500)
+  setTimeout(() => { showLevelUpAnimation.value = false }, 4000)
+}
+
 async function quickAdd(student: Student | null, rule: Rule) {
   if (!student) {
     const studentIds = Array.from(selectedStudents.value)
     let successCount = 0
-    
+
     for (const studentId of studentIds) {
       try {
         await addEvaluation({
@@ -513,14 +472,14 @@ async function quickAdd(student: Student | null, rule: Rule) {
         console.error('评价失败:', error)
       }
     }
-    
+
     showAddModal.value = false
     toast.success(`已为 ${successCount} 个宝贝${rule.points > 0 ? '加' : '扣'}${Math.abs(rule.points)}分`)
     cancelBatchMode()
     await loadStudents()
     return
   }
-  
+
   try {
     const res = await addEvaluation({
       studentId: student.id,
@@ -528,50 +487,34 @@ async function quickAdd(student: Student | null, rule: Rule) {
       reason: rule.name,
       category: rule.category
     })
-    
+
     // 触发动效
     triggerScoreAnimation(student.id, rule.points)
-    
+
     if (res.levelUp) {
-      levelUpInfo.value = { 
-        name: student.name, 
-        level: res.petLevel,
-        petType: student.pet_type || '',
-        prevLevel: res.petLevel - 1
-      }
-      levelUpImagesLoaded.value = { prev: false, current: false }
-      levelUpPhase.value = 'show-prev'
-      showLevelUpAnimation.value = true
-      
-      // 动画时序控制
-      setTimeout(() => { levelUpPhase.value = 'transition' }, 500)
-      setTimeout(() => { levelUpPhase.value = 'show-current' }, 1500)
-      setTimeout(() => { showLevelUpAnimation.value = false }, 4000)
+      triggerLevelUpAnimation(student, res.petLevel)
     }
     if (res.graduated) {
       toast.success(`🎓 恭喜！${student.name} 的宠物毕业了，获得了专属徽章！`)
     }
-    
+
     await loadStudents()
   } catch (error) {
     console.error('评价失败:', error)
     toast.error('评价失败，请重试')
   }
-}
-
+}// 评价记录加载与分页
 async function loadEvaluationRecords() {
   const res = await getEvaluations(recordsPage.value, recordsPageSize)
   evaluationRecords.value = res.records
   totalRecords.value = res.total
 }
 
-const paginatedRecords = computed(() => {
-  return evaluationRecords.value
-})
-
-const totalPages = computed(() => {
-  return Math.ceil(totalRecords.value / recordsPageSize)
-})
+// 打开评价记录模态框
+function openRecordsModal() {
+  loadEvaluationRecords()
+  showRecordsModal.value = true
+}
 
 function prevPage() {
   if (recordsPage.value > 1) {
@@ -625,15 +568,13 @@ async function undoLastEvaluation(recordId?: string) {
   })
 }
 
-async function handleAddRule() {
-  if (!newRuleName.value.trim()) {
+async function handleAddRule(payload: { name: string; points: number; category: string }) {
+  if (!payload.name.trim()) {
     toast.warning('请输入规则名称')
     return
   }
   try {
-    await addRule(newRuleName.value.trim(), newRulePoints.value, newRuleCategory.value)
-    newRuleName.value = ''
-    newRulePoints.value = 1
+    await addRule(payload.name.trim(), payload.points, payload.category)
     toast.success('添加成功！')
     await loadRules()
   } catch (error) {
@@ -662,10 +603,10 @@ async function handleDeleteRule(id: string) {
   })
 }
 
-function getStudentPetImage(student: Student): string {
-  if (!student.pet_type) return ''
-  // 根据学生当前等级显示对应等级的宠物图片
-  return getPetLevelImage(student.pet_type, student.pet_level)
+// 关闭选择宠物模态框
+function closePetModal() {
+  showPetModal.value = false
+  selectedStudent.value = null
 }
 
 // Initialize
@@ -676,195 +617,37 @@ onMounted(async () => {
     await loadRules()
   } finally {
     isLoading.value = false
-    nextTick(() => {
-      isLoaded.value = true
-    })
   }
 })
-</script>
-
-<template>
+</script><template>
   <div class="min-h-screen bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 flex flex-col">
-    
+
     <!-- 加载动画 -->
-    <Transition name="fade">
-      <div v-if="isLoading" class="fixed inset-0 bg-gradient-to-br from-orange-50 via-pink-50 to-purple-50 flex items-center justify-center z-[200]">
-        <div class="text-center">
-          <div class="text-8xl mb-6 animate-bounce">🐕</div>
-          <div class="text-xl font-bold text-gray-600">加载中...</div>
-          <div class="mt-4 flex justify-center gap-2">
-            <span class="w-3 h-3 bg-orange-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-            <span class="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-            <span class="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
-          </div>
-        </div>
-      </div>
-    </Transition>
-    
+    <LoadingOverlay :show="isLoading" />
+
     <!-- 升级动画 -->
-    <Transition name="fade">
-      <div v-if="showLevelUpAnimation" class="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[200]">
-        <div class="relative">
-          <!-- 背景光晕 -->
-          <div class="absolute inset-0 bg-gradient-to-r from-orange-400 via-pink-400 to-purple-400 rounded-full blur-3xl opacity-60 animate-pulse"></div>
-          
-          <!-- 主内容 -->
-          <div class="relative bg-white/95 backdrop-blur-xl rounded-3xl p-10 text-center shadow-2xl border-4 max-w-md"
-            :class="levelUpInfo.level >= 8 ? 'border-yellow-400 shadow-yellow-400/50' : levelUpInfo.level >= 5 ? 'border-purple-400 shadow-purple-400/50' : 'border-orange-400 shadow-orange-400/50'"
-          >
-            <!-- 标题 -->
-            <h2 class="text-3xl font-bold mb-2"
-              :class="levelUpInfo.level >= 8 ? 'text-gradient bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-400 bg-clip-text text-transparent' : 'text-gradient'"
-            >
-              {{ levelUpInfo.level >= 8 ? '恭喜毕业！' : '升级啦！' }}
-            </h2>
-            
-            <!-- 宠物进化动画区域 -->
-            <div class="relative w-48 h-48 mx-auto my-6">
-              <!-- 进化光环 - 改为圆角矩形与图片风格一致 -->
-              <div class="absolute inset-0 rounded-3xl bg-gradient-to-r from-orange-300 via-pink-300 to-purple-300 opacity-50 animate-spin" style="animation-duration: 3s"></div>
-              <div class="absolute inset-2 rounded-3xl bg-gradient-to-r from-yellow-300 via-orange-300 to-pink-300 opacity-40 animate-spin" style="animation-duration: 2s; animation-direction: reverse"></div>
-              
-              <!-- 宠物图片容器 - 圆角矩形与宠物图片风格一致 -->
-              <div class="absolute inset-4 rounded-2xl overflow-hidden bg-gradient-to-br from-orange-100 to-pink-100 shadow-inner">
-                <!-- 升级前图片 - 初始显示，过渡阶段淡出 -->
-                <img 
-                  :src="getPetLevelImage(levelUpInfo.petType, levelUpInfo.prevLevel)" 
-                  class="absolute inset-0 w-full h-full object-contain p-2 transition-all duration-1000"
-                  :class="levelUpPhase === 'show-prev' ? 'opacity-100 scale-100' : 'opacity-0 scale-50'"
-                />
-                <!-- 升级后图片 - 过渡阶段淡入，最终显示 -->
-                <img 
-                  :src="getPetLevelImage(levelUpInfo.petType, levelUpInfo.level)" 
-                  class="absolute inset-0 w-full h-full object-contain p-2 transition-all duration-1000"
-                  :class="levelUpPhase === 'show-current' ? 'opacity-100 scale-100' : 'opacity-0 scale-150'"
-                />
-              </div>
-              
-              <!-- 等级变化指示 -->
-              <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white rounded-full px-4 py-1 shadow-lg">
-                <span class="text-sm text-gray-400">Lv.{{ levelUpInfo.prevLevel }}</span>
-                <span class="text-lg">➜</span>
-                <span class="text-xl font-bold"
-                  :class="levelUpInfo.level >= 8 ? 'text-yellow-500' : levelUpInfo.level >= 5 ? 'text-purple-500' : 'text-orange-500'"
-                >
-                  Lv.{{ levelUpInfo.level }}
-                </span>
-              </div>
-            </div>
-            
-            <!-- 信息 -->
-            <p class="text-lg text-gray-600 mb-1">
-              <span class="font-bold text-purple-500">{{ levelUpInfo.name }}</span> 的宠物
-            </p>
-            
-            <!-- 等级称号 -->
-            <div class="text-base">
-              <span v-if="levelUpInfo.level >= 10" class="text-yellow-500 font-bold">🏆 传说级宠物</span>
-              <span v-else-if="levelUpInfo.level >= 8" class="text-pink-500 font-bold">🌟 史诗级宠物</span>
-              <span v-else-if="levelUpInfo.level >= 5" class="text-purple-500 font-bold">⭐ 稀有宠物</span>
-              <span v-else-if="levelUpInfo.level >= 3" class="text-blue-500 font-bold">💎 优秀宠物</span>
-              <span v-else class="text-green-500 font-bold">🌱 成长中</span>
-            </div>
-          </div>
-          
-          <!-- 装饰星星 -->
-          <div class="absolute -top-4 -left-4 text-4xl animate-pulse">✨</div>
-          <div class="absolute -top-4 -right-4 text-4xl animate-pulse" style="animation-delay: 0.2s">✨</div>
-          <div class="absolute -bottom-4 -left-4 text-4xl animate-pulse" style="animation-delay: 0.4s">✨</div>
-          <div class="absolute -bottom-4 -right-4 text-4xl animate-pulse" style="animation-delay: 0.6s">✨</div>
-        </div>
-      </div>
-    </Transition>
+    <LevelUpModal
+      :show="showLevelUpAnimation"
+      :info="levelUpInfo"
+      :phase="levelUpPhase"
+    />
 
     <!-- 顶部导航栏 -->
-    <header class="bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 shadow-lg px-4 py-3 flex items-center justify-between sticky top-0 z-30">
-      <!-- Left -->
-      <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold text-white drop-shadow-lg flex items-center gap-2">
-          <span class="text-2xl animate-bounce-slow">🐾</span>
-          <span class="text-gradient">成长伙伴</span>
-        </h1>
-        <span class="text-sm text-white/90 font-medium bg-white/20 px-3 py-1 rounded-full">
-          {{ students.length }} 个宝贝
-        </span>
-      </div>
-      
-      <!-- Right -->
-      <div class="flex items-center gap-1.5">
-        <!-- Search -->
-        <input 
-          v-model="searchQuery"
-          type="text" 
-          placeholder="🔍 搜索..."
-          class="border-0 rounded-lg px-3 py-1.5 text-sm w-28 bg-white/95 hover:bg-white shadow-md focus:outline-none focus:ring-2 focus:ring-white/50 transition-all"
-        />
-        
-        <!-- Pet Menu -->
-        <div class="relative" v-if="!batchMode">
-          <button @click="showPetMenu = !showPetMenu" class="px-3 py-1.5 rounded-lg text-sm bg-white/95 hover:bg-white shadow-md transition-all font-medium">
-            🐕 宠物 ▾
-          </button>
-          <div v-if="showPetMenu" @click="showPetMenu = false" class="fixed inset-0 z-40"></div>
-          <Transition name="dropdown">
-            <div v-if="showPetMenu" class="absolute right-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-40 z-50 overflow-hidden">
-              <router-link to="/preview" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors flex items-center gap-2">
-                📖 图鉴
-              </router-link>
-            </div>
-          </Transition>
-        </div>
-        
-        <!-- Sort Menu -->
-        <div class="relative" v-if="!batchMode">
-          <button @click="toggleSortMenu" class="px-3 py-1.5 rounded-lg text-sm bg-white/95 hover:bg-white shadow-md transition-all font-medium">
-            📊 排序 ▾
-          </button>
-          <div v-if="showSortMenu" @click="showSortMenu = false" class="fixed inset-0 z-40"></div>
-          <Transition name="dropdown">
-            <div v-if="showSortMenu" class="absolute right-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-40 z-50 overflow-hidden">
-              <button @click="setSort('name', 'asc')" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors" :class="sortBy === 'name' && sortOrder === 'asc' ? 'bg-gradient-to-r from-orange-50 to-pink-50 text-orange-600 font-medium' : ''">🔤 A-Z</button>
-              <button @click="setSort('name', 'desc')" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors" :class="sortBy === 'name' && sortOrder === 'desc' ? 'bg-gradient-to-r from-orange-50 to-pink-50 text-orange-600 font-medium' : ''">🔤 Z-A</button>
-              <button @click="setSort('progress', 'desc')" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors" :class="sortBy === 'progress' ? 'bg-gradient-to-r from-orange-50 to-pink-50 text-orange-600 font-medium' : ''">⭐ 进度</button>
-            </div>
-          </Transition>
-        </div>
-        
-        <!-- Student Menu -->
-        <div class="relative" v-if="!batchMode">
-          <button @click="showStudentMenu = !showStudentMenu" class="px-3 py-1.5 rounded-lg text-sm bg-white/95 hover:bg-white shadow-md transition-all font-medium">
-            👶 宝贝 ▾
-          </button>
-          <div v-if="showStudentMenu" @click="showStudentMenu = false" class="fixed inset-0 z-40"></div>
-          <Transition name="dropdown">
-            <div v-if="showStudentMenu" class="absolute right-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-40 z-50 overflow-hidden">
-              <button @click="showStudentModal = true" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">➕ 添加</button>
-              <button @click="openImportModal" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">📥 导入</button>
-              <button @click="showDeleteStudentMode = true; deleteStudentList = []" class="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-red-50 transition-colors">🗑️ 删除</button>
-            </div>
-          </Transition>
-        </div>
-        
-        <!-- Eval Menu -->
-        <div class="relative" v-if="!batchMode">
-          <button @click="showEvalMenu = !showEvalMenu" class="px-3 py-1.5 rounded-lg text-sm bg-white/95 hover:bg-white shadow-md transition-all font-medium">
-            ⭐ 评价 ▾
-          </button>
-          <div v-if="showEvalMenu" @click="showEvalMenu = false" class="fixed inset-0 z-40"></div>
-          <Transition name="dropdown">
-            <div v-if="showEvalMenu" class="absolute right-0 top-full mt-1.5 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 w-40 z-50 overflow-hidden">
-              <button @click="startBatchMode" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">✅ 批量</button>
-              <button @click="showRankModal = true" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">🏆 排行</button>
-              <button @click="loadEvaluationRecords(); showRecordsModal = true" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">📋 记录</button>
-              <hr class="my-1.5 border-gray-100">
-              <button @click="showRulesModal = true" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">⚙️ 规则</button>
-            </div>
-          </Transition>
-        </div>
-        
-      </div>
-    </header>
-    
+    <TopBar
+      :student-count="students.length"
+      v-model:search-query="searchQuery"
+      :batch-mode="batchMode"
+      :sort="sort"
+      @sort-change="handleSortChange"
+      @add-student="showStudentModal = true"
+      @import-students="showImportModal = true"
+      @delete-students="startDeleteMode"
+      @start-batch="startBatchMode"
+      @show-rank="showRankModal = true"
+      @show-records="openRecordsModal"
+      @show-rules="showRulesModal = true"
+    />
+
     <!-- Main Content -->
     <main class="flex-1 overflow-auto p-6">
       <Transition name="fade" mode="out-in">
@@ -881,7 +664,7 @@ onMounted(async () => {
               ➕ 添加宝贝
             </button>
             <button
-              @click="openImportModal"
+              @click="showImportModal = true"
               class="bg-white text-gray-700 px-6 py-3 rounded-2xl hover:shadow-lg hover:scale-105 transition-all font-bold border border-gray-200"
             >
               📥 批量导入
@@ -891,769 +674,110 @@ onMounted(async () => {
 
         <!-- 学生列表 -->
         <div v-else key="students" class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-5">
-          <div 
-            v-for="student in filteredStudents" 
+          <StudentCard
+            v-for="student in filteredStudents"
             :key="student.id"
-            class="bg-white rounded-2xl shadow-card overflow-hidden hover:shadow-card-hover transition-all duration-300 cursor-pointer relative group card-hover"
-            :class="[getLevelBorderClass(getDisplayLevel(student)), { 
-              'ring-2 ring-purple-400 ring-offset-2': batchMode && selectedStudents.has(student.id),
-              'ring-2 ring-red-400 ring-offset-2': showDeleteStudentMode && deleteStudentList.includes(student.id)
-            }]"
-            @click="
-              batchMode ? toggleStudentSelect(student.id) : 
-              showDeleteStudentMode ? toggleDeleteStudent(student.id) : 
-              openDetailPanel(student)
-            "
-          >
-            <!-- 评分动效 -->
-            <Transition name="score-pop">
-              <div 
-                v-if="scoreAnimations.has(student.id)"
-                class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none"
-              >
-                <div 
-                  class="text-4xl font-bold animate-bounce-in"
-                  :class="scoreAnimations.get(student.id)!.points > 0 ? 'text-green-500' : 'text-red-500'"
-                >
-                  {{ scoreAnimations.get(student.id)!.points > 0 ? '+' : '' }}{{ scoreAnimations.get(student.id)!.points }}
-                </div>
-                <div class="absolute inset-0 overflow-hidden">
-                  <span v-for="i in 6" :key="i" class="absolute text-2xl animate-sparkle" :style="{ left: `${Math.random() * 80 + 10}%`, top: `${Math.random() * 80 + 10}%`, animationDelay: `${i * 100}ms` }">
-                    {{ scoreAnimations.get(student.id)!.points > 0 ? '⭐' : '💫' }}
-                  </span>
-                </div>
-              </div>
-            </Transition>
-            
-            <!-- 选中标记 -->
-            <Transition name="pop">
-              <div 
-                v-if="batchMode || showDeleteStudentMode"
-                class="absolute top-3 left-3 w-7 h-7 rounded-full flex items-center justify-center z-10 shadow-md transition-all"
-                :class="batchMode 
-                  ? (selectedStudents.has(student.id) ? 'bg-gradient-to-r from-purple-400 to-pink-400' : 'bg-white border-2 border-gray-300')
-                  : (deleteStudentList.includes(student.id) ? 'bg-gradient-to-r from-red-400 to-pink-400' : 'bg-white border-2 border-gray-300')
-                "
-              >
-                <span v-if="(batchMode && selectedStudents.has(student.id)) || (showDeleteStudentMode && deleteStudentList.includes(student.id))" class="text-white text-sm font-bold">✓</span>
-              </div>
-            </Transition>
-            
-            <!-- 宠物图片区域 -->
-            <div class="aspect-square flex items-center justify-center relative rounded-t-2xl"
-              :class="student.pet_type ? 'bg-gradient-to-br from-orange-100 via-amber-50 to-yellow-100' : 'bg-gradient-to-br from-gray-100 via-slate-50 to-gray-100'"
-            >
-              <!-- 有宠物时使用 PetImage 组件 -->
-              <template v-if="student.pet_type">
-                <div class="w-full h-full overflow-hidden" style="border-radius: 14px 14px 0 0; margin: -1px -1px 0 -1px; width: calc(100% + 2px);">
-                  <PetImage
-                    :src="getStudentPetImage(student)"
-                    :alt="getPetType(student.pet_type)?.name"
-                    size="full"
-                    :rounded="false"
-                    :show-loading="true"
-                    class="w-full h-full"
-                  />
-                </div>
-              </template>
-              <!-- 未领养宠物 -->
-              <div v-else class="flex flex-col items-center">
-                <span class="text-6xl pet-unknown">❓</span>
-                <span class="text-xs text-gray-400 mt-2 group-hover:text-orange-400 transition-colors">点击领养</span>
-              </div>
-              
-              <!-- 等级徽章 -->
-              <div 
-                class="absolute bottom-3 right-3 font-bold px-3 py-1 rounded-full shadow-lg text-white text-sm"
-                :class="`bg-gradient-to-r ${getLevelBgClass(getDisplayLevel(student))}`"
-              >
-                <span v-if="getDisplayLevel(student) >= 10">👑</span>
-                <span v-else>Lv.</span>{{ getDisplayLevel(student) }}
-              </div>
-            </div>
-            
-            <!-- 信息区域 -->
-            <div class="p-4">
-              <!-- 学生姓名 + 宠物名 -->
-              <div class="flex items-center justify-between mb-2">
-                <span class="font-bold text-lg text-gray-800 group-hover:text-orange-500 transition-colors">{{ student.name }}</span>
-                <span class="text-xs px-2 py-1 rounded-full" 
-                  :class="student.pet_type ? 'bg-gradient-to-r from-orange-100 to-pink-100 text-orange-600' : 'bg-gray-100 text-gray-400'">
-                  {{ student.pet_type ? (student.pet_name || getPetType(student.pet_type)?.name) : '未领养' }}
-                </span>
-              </div>
-              
-              <!-- 成长值 + 积分 -->
-              <div class="flex items-center justify-between text-sm mb-3">
-                <span class="text-gray-500 flex items-center gap-1">
-                  <template v-if="getLevelProgress(student.pet_exp).isMaxLevel">
-                    <span class="text-xs text-amber-500 font-medium">🏆 已毕业</span>
-                  </template>
-                  <template v-else>
-                    <span class="text-purple-400">💜</span>
-                    <span class="font-medium text-purple-600">{{ getLevelProgress(student.pet_exp).current }}</span>
-                    <span class="text-gray-300">/</span>
-                    <span>{{ getLevelProgress(student.pet_exp).required }}</span>
-                  </template>
-                </span>
-                <span class="font-bold text-lg flex items-center gap-1">
-                  <span class="text-yellow-400">⭐</span>
-                  <span class="text-orange-500">{{ student.total_points }}</span>
-                </span>
-              </div>
-              
-              <!-- 进度条 -->
-              <div class="bg-gray-100 rounded-full h-2.5 overflow-hidden progress-glow">
-                <div 
-                  class="rounded-full h-2.5 transition-all duration-500"
-                  :class="getDisplayLevel(student) >= 5 ? 'bg-gradient-to-r from-purple-400 via-pink-400 to-rose-400' : 'bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400'"
-                  :style="{ width: `${getLevelProgress(student.pet_exp).percentage}%` }"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Transition>
-      
-      <!-- 批量操作栏 -->
-      <Transition name="slide-up">
-        <div v-if="batchMode && selectedStudents.size > 0" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl p-4 flex gap-4 z-40 border border-gray-100">
-          <button 
-            @click="batchAddPoints"
-            class="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2"
-          >
-            <span class="text-xl">⬆️</span> 统一加分
-          </button>
-          <button 
-            @click="batchSubPoints"
-            class="bg-gradient-to-r from-red-400 to-pink-500 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg hover:scale-105 transition-all flex items-center gap-2"
-          >
-            <span class="text-xl">⬇️</span> 统一扣分
-          </button>
-        </div>
-      </Transition>
-      
-      <!-- 删除学生操作栏 -->
-      <Transition name="slide-up">
-        <div v-if="showDeleteStudentMode" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl p-4 flex gap-4 z-40 border border-gray-100">
-          <span class="text-gray-600 py-3 font-medium">已选 <span class="text-red-500 font-bold">{{ deleteStudentList.length }}</span> 人</span>
-          <button 
-            @click="batchDeleteStudents"
-            :disabled="deleteStudentList.length === 0"
-            class="bg-gradient-to-r from-red-500 to-pink-600 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2"
-          >
-            <span class="text-xl">🗑️</span> 确认删除
-          </button>
-          <button 
-            @click="cancelDeleteMode"
-            class="bg-gray-100 text-gray-700 px-8 py-3 rounded-xl font-bold hover:bg-gray-200 transition-all"
-          >
-            取消
-          </button>
-        </div>
-      </Transition>
-    </main>
-
-    <!-- 添加宝贝模态框 -->
-    <Transition name="modal">
-      <div v-if="showStudentModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl animate-scale-in">
-          <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-            <span class="text-2xl">👶</span> 添加宝贝
-          </h3>
-          <input
-            v-model="newStudentName"
-            type="text"
-            placeholder="宝贝名字"
-            class="w-full border-2 border-gray-200 rounded-xl px-5 py-3 mb-6 text-lg focus:outline-none focus:border-orange-400 transition-colors"
+            :student="student"
+            :batch-mode="batchMode"
+            :delete-mode="showDeleteStudentMode"
+            :selected="selectedStudents.has(student.id)"
+            :marked-for-delete="deleteStudentList.includes(student.id)"
+            :score-animation="scoreAnimations.get(student.id) || null"
+            @click="handleStudentCardClick"
           />
-          <div class="flex gap-3 justify-end">
-            <button @click="showStudentModal = false" class="px-6 py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors">取消</button>
-            <button @click="handleAddStudent" class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
-              添加
-            </button>
-          </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+
+      <!-- 批量操作栏 -->
+      <BatchActionBar
+        v-if="batchMode && selectedStudents.size > 0"
+        :count="selectedStudents.size"
+        @add="batchAddPoints"
+        @sub="batchSubPoints"
+      />
+
+      <!-- 删除学生操作栏 -->
+      <DeleteStudentsBar
+        v-if="showDeleteStudentMode"
+        :count="deleteStudentList.length"
+        @confirm="batchDeleteStudents"
+        @cancel="cancelDeleteMode"
+      />
+    </main><!-- 添加宝贝模态框 -->
+    <AddStudentModal
+      :show="showStudentModal"
+      @close="showStudentModal = false"
+      @submit="handleAddStudent"
+    />
 
     <!-- 批量导入模态框 -->
-    <Transition name="modal">
-      <div v-if="showImportModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-xl shadow-2xl animate-scale-in">
-          <h3 class="text-xl font-bold mb-2 flex items-center gap-2">
-            <span class="text-2xl">📥</span> 批量导入宝贝
-          </h3>
-          <p class="text-sm text-gray-500 mb-4">
-            一行一个宝贝名字
-          </p>
-          <textarea
-            v-model="importText"
-            placeholder="小宝&#10;球球&#10;豆豆"
-            class="w-full border-2 border-gray-200 rounded-xl px-5 py-4 mb-4 h-48 text-sm font-mono focus:outline-none focus:border-orange-400 transition-colors"
-          ></textarea>
-          <div class="bg-gradient-to-r from-orange-50 to-pink-50 rounded-xl p-4 mb-6 text-sm text-gray-600">
-            <p class="font-medium mb-2 flex items-center gap-2"><span>💡</span> 示例格式：</p>
-            <code class="text-xs bg-white px-3 py-2 rounded-lg block text-gray-500">
-              小宝<br>
-              球球<br>
-              豆豆
-            </code>
-          </div>
-          <div class="flex gap-3 justify-end">
-            <button @click="showImportModal = false" class="px-6 py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors">取消</button>
-            <button @click="handleImportStudents" class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-8 py-3 rounded-xl font-bold hover:shadow-lg transition-all">
-              导入
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <ImportStudentsModal
+      :show="showImportModal"
+      @close="showImportModal = false"
+      @submit="handleImportStudents"
+    />
 
     <!-- 评价模态框 -->
-    <Transition name="modal">
-      <div v-if="showAddModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-3xl max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
-          <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-            <span class="text-2xl">⭐</span>
-            <template v-if="selectedStudent">
-              为 <span class="text-gradient">{{ selectedStudent?.name }}</span> 评价
-            </template>
-            <template v-else>
-              批量评价 <span class="text-purple-500">{{ selectedStudents.size }}</span> 个宝贝
-            </template>
-          </h3>
-          
-          <!-- 分类标签 -->
-          <div class="flex gap-2 mb-6 flex-wrap">
-            <button 
-              v-for="cat in categories" 
-              :key="cat"
-              @click="selectedEvalTab = cat"
-              class="px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
-              :class="selectedEvalTab === cat 
-                ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow-lg' 
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-            >
-              {{ cat }}
-            </button>
-          </div>
-          
-          <!-- 规则网格 - 固定5行高度，超出显示滚动条 -->
-          <div class="h-[590px] overflow-y-auto pr-2 custom-scrollbar">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 content-start">
-              <button 
-                v-for="rule in currentCategoryRules" 
-                :key="rule.id"
-                @click="quickAdd(selectedStudent, rule); showAddModal = false"
-                class="rounded-2xl p-4 text-left transition-all border-2 hover:scale-105 hover:shadow-lg active:scale-95 h-[110px]"
-                :class="rule.points > 0 
-                  ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 hover:border-green-400' 
-                  : 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200 hover:border-red-400'"
-              >
-                <div class="flex items-center justify-between mb-2">
-                  <span 
-                    class="font-bold text-2xl"
-                    :class="rule.points > 0 ? 'text-green-500' : 'text-red-500'"
-                  >
-                    {{ rule.points > 0 ? '+' : '' }}{{ rule.points }}
-                  </span>
-                  <span 
-                    class="text-xs px-2 py-1 rounded-full font-medium"
-                    :class="rule.points > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'"
-                  >
-                    {{ rule.points > 0 ? '加分' : '扣分' }}
-                  </span>
-                </div>
-                <div class="text-sm text-gray-700 font-medium leading-tight line-clamp-2">{{ rule.name }}</div>
-              </button>
-            </div>
-          </div>
-
-          <div class="flex justify-end mt-6">
-            <button @click="showAddModal = false" class="px-6 py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors">取消</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <EvaluationModal
+      :show="showAddModal"
+      :rules="rules"
+      :student="selectedStudent"
+      :selected-count="selectedStudents.size"
+      :initial-tab="selectedEvalTab"
+      @close="showAddModal = false"
+      @select="handleEvalRule"
+    />
 
     <!-- 选择宠物模态框 -->
-    <Transition name="modal">
-      <div v-if="showPetModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-3xl max-h-[90vh] overflow-auto shadow-2xl animate-scale-in">
-          <h3 class="text-2xl font-bold mb-6 flex items-center gap-3">
-            <span class="text-3xl">🐾</span>
-            <span>为 <span class="text-gradient bg-gradient-to-r from-orange-500 to-pink-500 bg-clip-text text-transparent">{{ selectedStudent?.name }}</span> 选择宠物伙伴</span>
-          </h3>
-          
-          <!-- 宠物网格 - 所有宠物混合显示 -->
-          <div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            <button
-              v-for="pet in PET_TYPES"
-              :key="pet.id"
-              @click="selectPet(pet.id)"
-              :class="adoptPetId === pet.id
-                ? 'border-orange-400 from-orange-50 to-pink-50 ring-2 ring-orange-200'
-                : 'border-transparent hover:border-orange-300 hover:from-orange-50 hover:to-pink-50'"
-              class="relative bg-gradient-to-br from-white to-gray-50 rounded-2xl p-3 hover:shadow-xl hover:scale-105 transition-all text-center group border-2 overflow-hidden"
-            >
-              <!-- 装饰性边框 -->
-              <div class="absolute inset-0 rounded-2xl border-2 border-dashed border-gray-200 group-hover:border-orange-200 transition-colors"></div>
-              
-              <!-- 图片容器 -->
-              <div class="relative w-full aspect-square mx-auto mb-2">
-                <!-- 加载动画 - 图片加载完成前显示 -->
-                <div 
-                  v-if="!imageLoaded[pet.id]" 
-                  class="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-orange-100/80 to-pink-100/80 rounded-xl"
-                >
-                  <div class="flex gap-1.5">
-                    <span class="w-2 h-2 bg-orange-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-                    <span class="w-2 h-2 bg-pink-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-                    <span class="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
-                  </div>
-                </div>
-                <!-- 宠物图片 - 加载完成后淡入显示 -->
-                <img 
-                  :src="getPetLevel1Image(pet.id)" 
-                  class="w-full h-full object-contain group-hover:scale-110 transition-all duration-300 rounded-xl p-1"
-                  :class="imageLoaded[pet.id] ? 'opacity-100' : 'opacity-0'"
-                  @load="imageLoaded[pet.id] = true"
-                />
-              </div>
-              
-              <!-- 宠物名称 - 放大 -->
-              <div class="text-base font-bold mt-2 text-gray-800 group-hover:text-orange-600 transition-colors leading-tight">{{ pet.name }}</div>
-            </button>
-          </div>
-
-          <!-- 宠物命名 -->
-          <div class="mt-6">
-            <label class="block text-sm font-medium text-gray-700 mb-2">给宠物起个名字 <span class="text-gray-400">（选填）</span></label>
-            <input
-              v-model="adoptPetName"
-              type="text"
-              placeholder="留空则默认用品种名"
-              maxlength="20"
-              class="w-full px-4 py-3 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-orange-400 focus:outline-none transition-colors text-gray-800 placeholder-gray-400"
-            />
-          </div>
-
-          <div class="mt-6 p-4 bg-gradient-to-r from-orange-50 via-pink-50 to-purple-50 rounded-xl text-sm text-gray-600 text-center border border-orange-100">
-            <span class="text-lg">💡</span> 先点击选中宠物，再起个名字，最后确认领养！
-          </div>
-
-          <div class="flex justify-end gap-3 mt-6">
-            <button @click="showPetModal = false" class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-medium transition-colors">取消</button>
-            <button
-              @click="confirmAdopt"
-              :disabled="!adoptPetId"
-              :class="adoptPetId ? 'bg-gradient-to-r from-orange-500 to-pink-500 hover:shadow-lg' : 'bg-gray-300'"
-              class="px-6 py-3 rounded-xl font-medium text-white transition-colors disabled:cursor-not-allowed"
-            >
-              确认领养
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <SelectPetModal
+      :show="showPetModal"
+      :student="selectedStudent"
+      @close="closePetModal"
+      @confirm="handleAdopt"
+    />
 
     <!-- 排行榜模态框 -->
-    <Transition name="modal">
-      <div v-if="showRankModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-lg max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
-          <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-            <span class="text-2xl">🏆</span> 积分排行榜
-          </h3>
-          
-          <div v-if="ranking.length === 0" class="text-center py-12 text-gray-500">
-            暂无数据
-          </div>
-          
-          <div v-else class="space-y-3">
-            <div 
-              v-for="(student, index) in ranking" 
-              :key="student.id"
-              class="flex items-center gap-4 p-4 rounded-2xl transition-all"
-              :class="index < 3 ? 'bg-gradient-to-r from-yellow-50 via-orange-50 to-pink-50 shadow-md' : 'bg-gray-50'"
-            >
-              <!-- 排名 -->
-              <div class="w-10 h-10 flex items-center justify-center font-bold text-2xl">
-                <span v-if="index === 0" class="text-3xl animate-bounce-slow">🥇</span>
-                <span v-else-if="index === 1" class="text-3xl">🥈</span>
-                <span v-else-if="index === 2" class="text-3xl">🥉</span>
-                <span v-else class="text-gray-400">{{ index + 1 }}</span>
-              </div>
-              
-              <!-- 宠物头像 -->
-              <div class="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-br from-orange-100 to-pink-100 shadow-inner">
-                <img 
-                  v-if="student.pet_type" 
-                  :src="getStudentPetImage(student)" 
-                  class="w-10 h-10 object-contain"
-                />
-                <span v-else class="text-2xl">❓</span>
-              </div>
-              
-              <!-- 信息 -->
-              <div class="flex-1">
-                <div class="font-bold text-gray-800">{{ student.name }}</div>
-                <div class="text-xs text-gray-500">Lv.{{ getDisplayLevel(student) }}</div>
-              </div>
-              
-              <!-- 积分 -->
-              <div class="text-right">
-                <div class="font-bold text-xl text-orange-500">+{{ student.total_points }}</div>
-                <div class="text-xs text-gray-400">积分</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex justify-end mt-6">
-            <button @click="showRankModal = false" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">关闭</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <RankingModal
+      :show="showRankModal"
+      :ranking="ranking"
+      @close="showRankModal = false"
+    />
 
     <!-- 评价记录模态框 -->
-    <Transition name="modal">
-      <div v-if="showRecordsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-4xl max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-bold flex items-center gap-2">
-              <span class="text-2xl">📋</span> 评价记录
-            </h3>
-            <button 
-              @click="undoLastEvaluation(); loadEvaluationRecords()"
-              class="px-4 py-2 text-sm text-orange-500 hover:bg-orange-50 rounded-xl font-medium transition-colors flex items-center gap-1"
-            >
-              ↩️ 撤回最新
-            </button>
-          </div>
-          
-          <div v-if="evaluationRecords.length === 0" class="text-center py-16 text-gray-500">
-            <div class="text-5xl mb-4">📝</div>
-            暂无记录
-          </div>
-          
-          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div 
-              v-for="record in paginatedRecords" 
-              :key="record.id"
-              class="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow"
-            >
-              <!-- 头部 -->
-              <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center gap-2">
-                  <span class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 text-white flex items-center justify-center text-sm font-bold">
-                    {{ record.student_name.charAt(0) }}
-                  </span>
-                  <span class="font-bold text-gray-800">{{ record.student_name }}</span>
-                </div>
-                <span 
-                  class="px-3 py-1 rounded-full text-sm font-bold"
-                  :class="record.points > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'"
-                >
-                  {{ record.points > 0 ? '+' : '' }}{{ record.points }}
-                </span>
-              </div>
-              
-              <!-- 原因 -->
-              <div class="text-sm text-gray-600 mb-3 line-clamp-2">
-                {{ record.reason }}
-              </div>
-              
-              <!-- 底部 -->
-              <div class="flex items-center justify-between text-xs text-gray-400">
-                <span class="px-2 py-1 bg-gray-100 rounded-lg">{{ record.category }}</span>
-                <div class="flex items-center gap-2">
-                  <span>{{ new Date(record.timestamp).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}</span>
-                  <button 
-                    @click="undoLastEvaluation(record.id)"
-                    class="text-orange-500 hover:text-orange-600 hover:bg-orange-50 px-2 py-1 rounded transition-colors"
-                    title="撤回"
-                  >
-                    ↩️
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 分页 -->
-          <div v-if="totalPages > 1" class="flex items-center justify-between mt-6 pt-6 border-t border-gray-100">
-            <div class="text-sm text-gray-500">
-              共 <span class="font-medium">{{ totalRecords }}</span> 条记录
-            </div>
-            <div class="flex gap-2">
-              <button 
-                @click="prevPage"
-                :disabled="recordsPage <= 1"
-                class="px-4 py-2 rounded-xl border border-gray-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-              >
-                ← 上一页
-              </button>
-              <div class="flex gap-1">
-                <button 
-                  v-for="page in Math.min(totalPages, 5)" 
-                  :key="page"
-                  @click="goToPage(page)"
-                  class="px-4 py-2 rounded-xl text-sm min-w-[40px] font-medium transition-all"
-                  :class="recordsPage === page ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow-lg' : 'border border-gray-200 hover:bg-gray-50'"
-                >
-                  {{ page }}
-                </button>
-              </div>
-              <button 
-                @click="nextPage"
-                :disabled="recordsPage >= totalPages"
-                class="px-4 py-2 rounded-xl border border-gray-200 text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-              >
-                下一页 →
-              </button>
-            </div>
-          </div>
-
-          <div class="flex justify-end mt-6">
-            <button @click="showRecordsModal = false" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">关闭</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <RecordsModal
+      :show="showRecordsModal"
+      :records="evaluationRecords"
+      :page="recordsPage"
+      :total="totalRecords"
+      :total-pages="totalPages"
+      @close="showRecordsModal = false"
+      @undo="undoLastEvaluation"
+      @prev="prevPage"
+      @next="nextPage"
+      @go="goToPage"
+    />
 
     <!-- 管理规则模态框 -->
-    <Transition name="modal">
-      <div v-if="showRulesModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-4xl max-h-[85vh] overflow-auto shadow-2xl animate-scale-in">
-          <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
-            <span class="text-2xl">⚙️</span> 管理评价规则
-          </h3>
-          
-          <!-- 添加规则表单 -->
-          <div class="bg-gradient-to-r from-orange-50 to-pink-50 rounded-2xl p-6 mb-6">
-            <h4 class="font-bold mb-4 flex items-center gap-2">
-              <span>➕</span> 添加自定义规则
-            </h4>
-            <div class="flex flex-wrap gap-3 mb-4">
-              <input 
-                v-model="newRuleName"
-                type="text" 
-                placeholder="规则名称"
-                class="flex-1 min-w-[200px] border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
-              />
-              <select v-model="newRuleCategory" class="border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors cursor-pointer">
-                <option>学习</option>
-                <option>行为</option>
-                <option>健康</option>
-                <option>其他</option>
-              </select>
-              <input 
-                v-model.number="newRulePoints"
-                type="number" 
-                placeholder="分值"
-                class="w-24 border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
-              />
-            </div>
-            <button 
-              @click="handleAddRule"
-              class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-6 py-2.5 rounded-xl font-bold hover:shadow-lg transition-all"
-            >
-              添加规则
-            </button>
-          </div>
-          
-          <!-- 规则列表 -->
-          <div class="space-y-6">
-            <template v-for="cat in categories" :key="cat">
-              <div v-if="rules.filter(r => r.category === cat).length > 0">
-                <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-                  <span>{{ cat === '学习' ? '📚' : cat === '行为' ? '🎯' : cat === '健康' ? '💪' : '📌' }}</span>
-                  {{ cat }}
-                </h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  <div 
-                    v-for="rule in rules.filter(r => r.category === cat)" 
-                    :key="rule.id"
-                    class="flex items-center justify-between p-4 rounded-xl border-2"
-                    :class="rule.points > 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'"
-                  >
-                    <div class="flex items-center gap-2">
-                      <span 
-                        class="font-bold text-lg"
-                        :class="rule.points > 0 ? 'text-green-500' : 'text-red-500'"
-                      >
-                        {{ rule.points > 0 ? '+' : '' }}{{ rule.points }}
-                      </span>
-                      <span class="text-sm font-medium">{{ rule.name }}</span>
-                    </div>
-                    <button 
-                      v-if="rule.is_custom"
-                      @click="handleDeleteRule(rule.id)"
-                      class="text-red-400 hover:text-red-600 text-sm font-medium transition-colors"
-                    >
-                      删除
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </template>
-          </div>
-
-          <div class="flex justify-end mt-6">
-            <button @click="showRulesModal = false" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">关闭</button>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <RulesModal
+      :show="showRulesModal"
+      :rules="rules"
+      @close="showRulesModal = false"
+      @add="handleAddRule"
+      @delete="handleDeleteRule"
+    />
 
     <!-- 学生详情面板 -->
-    <Transition name="modal">
-      <div v-if="showDetailPanel && detailStudent" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="closeDetailPanel">
-        <div class="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-auto shadow-2xl animate-scale-in">
-          <!-- 头部 -->
-          <div class="relative bg-gradient-to-r from-orange-400 via-pink-400 to-purple-400 p-6 rounded-t-3xl">
-            <!-- 顶部操作按钮 -->
-            <div class="absolute top-4 right-4 flex gap-2">
-              <button v-if="detailStudent.pet_type" @click="startEditPetName()" class="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-full flex items-center gap-1.5 text-white text-sm transition-colors" title="改名字">
-                <span>✏️</span>
-                <span class="font-medium">改名</span>
-              </button>
-              <button @click="showDetailPanel = false; openPetSelect(detailStudent!)" class="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-full flex items-center gap-1.5 text-white text-sm transition-colors" title="更换宠物">
-                <span>🐾</span>
-                <span class="font-medium">换宠物</span>
-              </button>
-              <button @click="closeDetailPanel" class="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white text-xl transition-colors" title="关闭">
-                ×
-              </button>
-            </div>
-            <div class="flex items-center gap-4">
-              <div class="w-20 h-20 rounded-2xl overflow-hidden bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                <img 
-                  v-if="detailStudent.pet_type" 
-                  :src="getStudentPetImage(detailStudent)" 
-                  class="w-16 h-16 object-contain"
-                />
-                <span v-else class="text-4xl">❓</span>
-              </div>
-              <div class="text-white">
-                <h3 class="text-2xl font-bold">{{ detailStudent.name }}</h3>
-                <div v-if="editingPetName" class="flex items-center gap-2 mt-1">
-                  <input
-                    v-model="editPetNameValue"
-                    type="text"
-                    maxlength="20"
-                    placeholder="输入名字"
-                    class="px-2 py-1 rounded-lg text-gray-800 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-white/50"
-                  />
-                  <button @click="savePetName" class="px-2 py-1 bg-white/30 hover:bg-white/40 rounded-lg text-white text-sm transition-colors">确定</button>
-                  <button @click="editingPetName = false" class="px-2 py-1 bg-black/20 hover:bg-black/30 rounded-lg text-white text-sm transition-colors">取消</button>
-                </div>
-                <p v-else class="text-white/80 text-sm">
-                  {{ detailStudent.pet_type ? (detailStudent.pet_name || getPetType(detailStudent.pet_type)?.name) : '未领养' }}
-                  · Lv.{{ getDisplayLevel(detailStudent) }}
-                  · ⭐ {{ detailStudent.total_points }}
-                </p>
-              </div>
-            </div>
-            <!-- 进度条 -->
-            <div class="mt-4">
-              <div class="flex justify-between text-white/90 text-sm mb-1">
-                <span>成长值</span>
-                <span v-if="getLevelProgress(detailStudent.pet_exp).isMaxLevel" class="flex items-center gap-1">
-                  <span class="text-yellow-300 font-medium">🏆 已毕业，获得专属徽章</span>
-                </span>
-                <span v-else>
-                  {{ getLevelProgress(detailStudent.pet_exp).current }}/{{ getLevelProgress(detailStudent.pet_exp).required }}
-                </span>
-              </div>
-              <div class="bg-white/20 rounded-full h-3 overflow-hidden">
-                <div 
-                  class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-yellow-300 via-amber-300 to-orange-300"
-                  :style="{ width: `${getLevelProgress(detailStudent.pet_exp).percentage}%` }"
-                ></div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 快速评分 -->
-          <div class="p-6 border-b border-gray-100">
-            <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-              <span>⚡</span> 快速评价
-            </h4>
-            <!-- 分类标签 -->
-            <div class="flex gap-2 mb-4 flex-wrap">
-              <button 
-                v-for="cat in categories" 
-                :key="cat"
-                @click="detailEvalTab = cat"
-                class="px-4 py-1.5 rounded-xl text-sm font-bold transition-all"
-                :class="detailEvalTab === cat 
-                  ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow-lg' 
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
-              >
-                {{ cat }}
-              </button>
-            </div>
-            <!-- 规则按钮 - 每行5个，固定5行高度 -->
-            <div class="h-[400px] overflow-y-auto pr-1 custom-scrollbar">
-              <div class="grid grid-cols-5 gap-2 content-start">
-                <button 
-                  v-for="rule in rules.filter(r => r.category === detailEvalTab)" 
-                  :key="rule.id"
-                  @click="detailQuickAdd(rule)"
-                  class="rounded-xl p-2 text-center transition-all border-2 hover:scale-105 active:scale-95 h-[70px]"
-                  :class="rule.points > 0 
-                    ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 hover:border-green-400' 
-                    : 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200 hover:border-red-400'"
-                >
-                  <div 
-                    class="text-base font-bold"
-                    :class="rule.points > 0 ? 'text-green-500' : 'text-red-500'"
-                  >
-                    {{ rule.points > 0 ? '+' : '' }}{{ rule.points }}
-                  </div>
-                  <div class="text-xs text-gray-600 leading-tight line-clamp-2">{{ rule.name }}</div>
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 最近记录 -->
-          <div class="p-6">
-            <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-              <span>📋</span> 最近记录
-            </h4>
-            <div v-if="studentRecords.length === 0" class="text-center py-8 text-gray-400">
-              <div class="text-4xl mb-2">📝</div>
-              暂无评价记录
-            </div>
-            <div v-else class="space-y-2 max-h-60 overflow-auto">
-              <div 
-                v-for="record in studentRecords" 
-                :key="record.id"
-                class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-              >
-                <div 
-                  class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
-                  :class="record.points > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'"
-                >
-                  {{ record.points > 0 ? '+' : '' }}{{ record.points }}
-                </div>
-                <div class="flex-1">
-                  <div class="font-medium text-gray-800">{{ record.reason }}</div>
-                  <div class="text-xs text-gray-400">
-                    <span class="px-1.5 py-0.5 bg-gray-200 rounded mr-2">{{ record.category }}</span>
-                    {{ new Date(record.timestamp).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
-    
+    <StudentDetailPanel
+      :show="showDetailPanel"
+      :student="detailStudent"
+      :rules="rules"
+      :records="studentRecords"
+      @close="closeDetailPanel"
+      @change-pet="changeDetailPet"
+      @save-pet-name="savePetName"
+      @quick-add="detailQuickAdd"
+    />
+
     <!-- 确认对话框 -->
     <ConfirmDialog
       :show="confirmDialog.show"
@@ -1665,12 +789,11 @@ onMounted(async () => {
       @confirm="confirmDialog.onConfirm"
       @cancel="confirmDialog.show = false"
     />
-    
+
   </div>
 </template>
 
 <style scoped>
-/* 过渡动画 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
@@ -1679,155 +802,5 @@ onMounted(async () => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-.modal-enter-active,
-.modal-leave-active {
-  transition: all 0.3s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-
-.modal-enter-from > div,
-.modal-leave-to > div {
-  transform: scale(0.9);
-}
-
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: all 0.2s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-.slide-up-enter-active,
-.slide-up-leave-active {
-  transition: all 0.3s ease;
-}
-
-.slide-up-enter-from,
-.slide-up-leave-to {
-  opacity: 0;
-  transform: translate(-50%, 100%);
-}
-
-.pop-enter-active,
-.pop-leave-active {
-  transition: all 0.2s ease;
-}
-
-.pop-enter-from,
-.pop-leave-to {
-  opacity: 0;
-  transform: scale(0.5);
-}
-
-/* 评分动效 */
-.score-pop-enter-active {
-  animation: scorePopIn 0.5s ease-out;
-}
-
-.score-pop-leave-active {
-  transition: all 0.3s ease;
-}
-
-.score-pop-leave-to {
-  opacity: 0;
-  transform: scale(0.5);
-}
-
-@keyframes scorePopIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes sparkle {
-  0% {
-    opacity: 0;
-    transform: scale(0) rotate(0deg);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.5) rotate(180deg);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0) rotate(360deg);
-  }
-}
-
-.animate-sparkle {
-  animation: sparkle 0.8s ease-out forwards;
-}
-
-.animate-bounce-in {
-  animation: bounceIn 0.5s ease-out;
-}
-
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-bounce-in {
-  animation: bounceIn 0.5s ease-out;
-}
-
-@keyframes bounceIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.3);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  70% {
-    transform: scale(0.9);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* 自定义滚动条 */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(to bottom, #fb923c, #f472b6);
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(to bottom, #f97316, #ec4899);
 }
 </style>
