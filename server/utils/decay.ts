@@ -41,6 +41,7 @@ function decayPet(db: DatabaseSync, pet: PetRow, now: number): boolean {
   if (halfHours <= 0) return false
 
   const per = decayPerHalfHour(pet.level)
+  const cap = statCap(pet.level)
 
   let satiety = pet.satiety
   let cleanliness = pet.cleanliness
@@ -54,7 +55,10 @@ function decayPet(db: DatabaseSync, pet: PetRow, now: number): boolean {
     happiness = Math.max(0, happiness - per)
 
     if (satiety <= 0 && cleanliness <= 0 && happiness <= 0) break
-    exp += 1 // 每半小时 +1 成长值
+
+    // 成长值按照顾质量：三维均值 ≥ 上限 80% → +2（优秀），否则保底 +1
+    const avg = (satiety + cleanliness + happiness) / 3
+    exp += avg / cap >= 0.8 ? 2 : 1
   }
 
   // 升级：所需经验 = 等级 × 20，可连升
