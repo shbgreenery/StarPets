@@ -24,6 +24,7 @@ describe('宝贝', () => {
     expect(s.stars).toBe(0)
     expect(s.last_decay_at).toEqual(expect.any(Number))
     expect(s.deco_bg).toBeNull()
+    expect(s.deco_fx).toBeNull()
     expect(s.deco_pendants).toEqual([])
     expect(s.deco_owned).toEqual([])
   })
@@ -212,6 +213,8 @@ describe('装扮装饰', () => {
   const star = DECOR_ITEMS.find(i => i.id === 'pendant-star')!
   const bow = DECOR_ITEMS.find(i => i.id === 'pendant-bow')!
   const balloon = DECOR_ITEMS.find(i => i.id === 'pendant-balloon')!
+  const snow = DECOR_ITEMS.find(i => i.id === 'fx-snow')!
+  const fireflies = DECOR_ITEMS.find(i => i.id === 'fx-fireflies')!
 
   it('买背景:扣星、加入拥有、自动戴上、不涨成长值', async () => {
     const s = await addStudent('张三')
@@ -309,5 +312,52 @@ describe('装扮装饰', () => {
     const st = await db.students.get(s.id)
     expect(st?.stars).toBe(5)
     expect(st?.deco_pendants).toEqual([])
+  })
+
+  // ---- 特效(规则同背景:单槽、购买即戴、可卸下、拥有保留)----
+  it('买特效:扣星、加入拥有、自动戴上、不涨成长值', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 60, total_points: 10, pet_exp: 10, pet_level: 2 })
+    const res = await buyDecoration(s.id, snow)
+    expect(res.stars).toBe(15)
+    expect(res.deco_fx).toBe('fx-snow')
+    expect(res.deco_owned).toContain('fx-snow')
+    expect(res.total_points).toBe(10)
+    expect(res.pet_exp).toBe(10)
+    expect(res.pet_level).toBe(2)
+  })
+
+  it('买新特效覆盖旧特效槽位,拥有不变', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 100 })
+    await buyDecoration(s.id, snow)
+    await buyDecoration(s.id, fireflies)
+    const st = await db.students.get(s.id)
+    expect(st?.deco_fx).toBe('fx-fireflies')
+    expect(st?.deco_owned).toEqual(['fx-snow', 'fx-fireflies'])
+  })
+
+  it('卸下特效:还原默认但保留拥有', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 60 })
+    await buyDecoration(s.id, snow)
+    await takeOffDecoration(s.id, snow)
+    const st = await db.students.get(s.id)
+    expect(st?.deco_fx).toBeNull()
+    expect(st?.deco_owned).toContain('fx-snow')
+  })
+
+  it('未拥有特效就戴上抛错', async () => {
+    const s = await addStudent('张三')
+    await expect(wearDecoration(s.id, snow)).rejects.toThrow('还没拥有这件装饰')
+  })
+
+  it('特效星星不足拒绝购买且字段不变', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 40 })
+    await expect(buyDecoration(s.id, snow)).rejects.toThrow('星星不足')
+    const st = await db.students.get(s.id)
+    expect(st?.stars).toBe(40)
+    expect(st?.deco_fx).toBeNull()
   })
 })

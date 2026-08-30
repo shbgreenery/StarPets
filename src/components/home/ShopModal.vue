@@ -21,20 +21,22 @@ function isOwned(item: DecorationItem): boolean {
   return !!props.student && props.student.deco_owned.includes(item.id)
 }
 
-// 是否正在佩戴
+// 是否正在佩戴(背景/特效单槽,挂饰在数组中)
 function isWearing(item: DecorationItem): boolean {
   if (!props.student) return false
-  return item.slot === 'bg' ? props.student.deco_bg === item.id : props.student.deco_pendants.includes(item.id)
+  if (item.slot === 'bg') return props.student.deco_bg === item.id
+  if (item.slot === 'fx') return props.student.deco_fx === item.id
+  return props.student.deco_pendants.includes(item.id)
 }
 
-// 佩戴中文案(背景"使用中" / 挂饰"佩戴中")
+// 佩戴中文案(背景/特效"使用中" / 挂饰"佩戴中")
 function wearingLabel(item: DecorationItem): string {
-  return item.slot === 'bg' ? '✅ 使用中' : '✅ 佩戴中'
+  return item.slot === 'bg' || item.slot === 'fx' ? '✅ 使用中' : '✅ 佩戴中'
 }
 
 // 戴上操作文案
 function wearLabel(item: DecorationItem): string {
-  return item.slot === 'bg' ? '使用' : '戴上'
+  return item.slot === 'bg' || item.slot === 'fx' ? '使用' : '戴上'
 }
 </script>
 

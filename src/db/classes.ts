@@ -21,6 +21,7 @@ function normalize(s: StudentRow, now: number): StudentRow {
     stars: s.stars ?? 0,
     last_decay_at: s.last_decay_at ?? now,
     deco_bg: s.deco_bg ?? null,
+    deco_fx: s.deco_fx ?? null,
     // 兼容 v4 单值:deco_pendant 存在时迁移到数组
     deco_pendants: Array.isArray(s.deco_pendants) ? s.deco_pendants : (legacy.deco_pendant ? [legacy.deco_pendant] : []),
     deco_owned: Array.isArray(s.deco_owned)
@@ -68,7 +69,7 @@ export async function addStudent(name: string): Promise<StudentRow> {
     id: crypto.randomUUID(), name,
     total_points: 0, pet_type: null, pet_name: null, pet_level: 1, pet_exp: 0,
     hunger: 80, cleanliness: 80, happiness: 80, stars: 0, last_decay_at: now,
-    deco_bg: null, deco_pendants: [], deco_owned: [],
+    deco_bg: null, deco_fx: null, deco_pendants: [], deco_owned: [],
     created_at: now
   }
   await db.students.add(s)
@@ -150,6 +151,8 @@ export async function buyDecoration(studentId: string, item: DecorationItem): Pr
     const patch: Partial<StudentRow> = { stars: norm.stars - item.price, deco_owned: owned }
     if (item.slot === 'bg') {
       patch.deco_bg = item.id
+    } else if (item.slot === 'fx') {
+      patch.deco_fx = item.id
     } else if (!norm.deco_pendants.includes(item.id) && norm.deco_pendants.length < PENDANT_LIMIT) {
       // 挂饰有槽位自动戴上;已满 3 个只收藏不自动戴
       patch.deco_pendants = [...norm.deco_pendants, item.id]
@@ -171,6 +174,8 @@ export async function wearDecoration(studentId: string, item: DecorationItem): P
     const patch: Partial<StudentRow> = {}
     if (item.slot === 'bg') {
       patch.deco_bg = item.id
+    } else if (item.slot === 'fx') {
+      patch.deco_fx = item.id
     } else {
       if (norm.deco_pendants.includes(item.id)) throw new Error('这件挂饰已戴上')
       if (norm.deco_pendants.length >= PENDANT_LIMIT) throw new Error('挂饰位已满,先卸下一个')
@@ -191,6 +196,7 @@ export async function takeOffDecoration(studentId: string, item: DecorationItem)
 
     const patch: Partial<StudentRow> = {}
     if (item.slot === 'bg') patch.deco_bg = null
+    else if (item.slot === 'fx') patch.deco_fx = null
     else patch.deco_pendants = norm.deco_pendants.filter(id => id !== item.id)
 
     await db.students.update(studentId, patch)

@@ -8,7 +8,7 @@ export interface StudentRow {
   pet_level: number; pet_exp: number;
   hunger: number; cleanliness: number; happiness: number;
   stars: number; last_decay_at: number;
-  deco_bg: string | null; deco_pendants: string[]; deco_owned: string[];
+  deco_bg: string | null; deco_fx: string | null; deco_pendants: string[]; deco_owned: string[];
   created_at: number
 }
 export interface BadgeRow { id: string; student_id: string; pet_type: string; earned_at: number }
@@ -62,6 +62,12 @@ class PetGardenDB extends Dexie {
         for (const p of pendants) owned.push(p)
         s.deco_pendants = pendants
         s.deco_owned = owned
+      })
+    )
+    // v6: 特效装饰字段(单槽,同背景),为存量行回填 null
+    this.version(6).upgrade((tx) =>
+      tx.table('students').toCollection().modify((s) => {
+        s.deco_fx ??= null
       })
     )
   }

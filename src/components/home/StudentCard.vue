@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { getLevelProgress, getPetType } from '@/data/pets'
 import PetImage from '@/components/PetImage.vue'
+import ParticleEffect from '@/components/ParticleEffect.vue'
 import { getDisplayLevel, getLevelBgClass, getLevelBorderClass, getStudentPetImage } from '@/utils/levelStyle'
 import { isSleeping } from '@/data/shop'
 import { getDecorBgClass, getDecorPendantEmoji } from '@/data/decorations'
@@ -89,6 +90,9 @@ const emit = defineEmits<{
         <span class="text-6xl pet-unknown">❓</span>
         <span class="text-xs text-gray-400 mt-2 group-hover:text-orange-400 transition-colors">点击领养</span>
       </div>
+
+      <!-- 特效粒子层(覆盖宠物区;无 z-index,先于挂饰渲染,故挂饰/等级徽章盖在粒子之上) -->
+      <ParticleEffect v-if="student.deco_fx" :fx="student.deco_fx" />
 
       <!-- 挂饰装饰(最多同时戴 3 个) -->
       <div

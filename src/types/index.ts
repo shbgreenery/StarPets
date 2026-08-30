@@ -13,8 +13,9 @@ export interface Student {
   happiness: number
   stars: number
   last_decay_at: number
-  // 装扮装饰:背景单槽;挂饰可同时戴多个(≤PENDANT_LIMIT);deco_owned 为已购买收藏
+  // 装扮装饰:背景/特效单槽;挂饰可同时戴多个(≤PENDANT_LIMIT);deco_owned 为已购买收藏
   deco_bg: string | null
+  deco_fx: string | null
   deco_pendants: string[]
   deco_owned: string[]
   created_at?: number

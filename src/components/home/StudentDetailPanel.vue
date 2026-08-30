@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { getLevelProgress, getPetType } from '@/data/pets'
 import { getDisplayLevel, getStudentPetImage } from '@/utils/levelStyle'
 import { getDecorBgClass, getDecorPendantEmoji } from '@/data/decorations'
+import ParticleEffect from '@/components/ParticleEffect.vue'
 import { EVALUATION_CATEGORIES } from '@/data/categories'
 import { METRICS, isSleeping } from '@/data/shop'
 import type { EvaluationRecord, Rule, Student } from '@/types'
@@ -93,6 +94,8 @@ function formatTime(timestamp: number): string {
                 :class="student.deco_bg ? 'rounded-xl' : ''"
               />
               <span v-else class="text-4xl">❓</span>
+              <!-- 特效粒子层 -->
+              <ParticleEffect v-if="student.deco_fx" :fx="student.deco_fx" />
               <span
                 v-if="student.deco_pendants?.length"
                 class="absolute top-0.5 left-0.5 flex gap-0.5 text-sm drop-shadow"

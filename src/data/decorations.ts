@@ -2,10 +2,10 @@
 export interface DecorationItem {
   id: string
   name: string
-  slot: 'bg' | 'pendant'
+  slot: 'bg' | 'pendant' | 'fx'
   price: number
-  bgClass?: string   // slot === 'bg' 时:宠物显示区渐变 class
-  emoji?: string     // slot === 'pendant' 时:叠加在宠物旁的图标
+  bgClass?: string        // slot === 'bg' 时:宠物显示区渐变 class
+  emoji?: string          // slot === 'pendant'/'fx' 时:挂饰图标 / 特效粒子
 }
 
 export const DECOR_ITEMS: DecorationItem[] = [
@@ -21,12 +21,19 @@ export const DECOR_ITEMS: DecorationItem[] = [
   { id: 'pendant-glasses', name: '酷酷墨镜', slot: 'pendant', price: 15, emoji: '🕶️' },
   { id: 'pendant-balloon', name: '彩色气球', slot: 'pendant', price: 15, emoji: '🎈' },
   { id: 'pendant-crown', name: '闪闪皇冠', slot: 'pendant', price: 20, emoji: '👑' },
+  // 特效(5 件),价格高于背景,规则同背景(单槽、可卸下、拥有保留)
+  { id: 'fx-snow', name: '漫天飞雪', slot: 'fx', price: 45, emoji: '❄️' },
+  { id: 'fx-sparkles', name: '星光闪烁', slot: 'fx', price: 45, emoji: '✨' },
+  { id: 'fx-petals', name: '樱花飘落', slot: 'fx', price: 50, emoji: '🌸' },
+  { id: 'fx-bubbles', name: '梦幻泡泡', slot: 'fx', price: 50, emoji: '🫧' },
+  { id: 'fx-fireflies', name: '萤火点点', slot: 'fx', price: 55, emoji: '💫' },
 ]
 
 // 商城分组(补给三组之后追加)
-export const DECOR_GROUPS: { slot: 'bg' | 'pendant'; label: string; emoji: string }[] = [
+export const DECOR_GROUPS: { slot: 'bg' | 'pendant' | 'fx'; label: string; emoji: string }[] = [
   { slot: 'bg', label: '装扮背景', emoji: '🎨' },
   { slot: 'pendant', label: '装扮挂饰', emoji: '🎀' },
+  { slot: 'fx', label: '装扮特效', emoji: '✨' },
 ]
 
 // 背景装饰的渐变 class,未购买返回 ''(展示点回落默认渐变)
@@ -48,3 +55,17 @@ export const PENDANT_LIMIT = 3
 
 // 装扮卡片操作:购买 / 戴上 / 卸下
 export type DecorAction = 'buy' | 'wear' | 'takeOff'
+
+// 特效粒子动画配置(id → 粒子数/动画类型)
+export interface FxStyle { count: number; anim: 'fall' | 'rise' | 'sparkle' }
+export const FX_CONFIG: Record<string, FxStyle> = {
+  'fx-snow': { count: 10, anim: 'fall' },
+  'fx-petals': { count: 8, anim: 'fall' },
+  'fx-sparkles': { count: 14, anim: 'sparkle' },
+  'fx-bubbles': { count: 10, anim: 'rise' },
+  'fx-fireflies': { count: 12, anim: 'rise' },
+}
+export function getFxStyle(id: string | null): FxStyle | null {
+  if (!id) return null
+  return FX_CONFIG[id] || null
+}
