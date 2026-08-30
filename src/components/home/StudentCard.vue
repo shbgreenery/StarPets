@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { getLevelProgress, getPetType } from '@/data/pets'
 import PetImage from '@/components/PetImage.vue'
 import ParticleEffect from '@/components/ParticleEffect.vue'
@@ -12,12 +13,23 @@ interface ScoreAnimation {
   show: boolean
 }
 
-defineProps<{
+// 喂养过程动画:三种补给类型各自的气泡台词 + 飘落 emoji
+type FeedKind = 'hunger' | 'cleanliness' | 'happiness'
+const FEED_CONFIG: Record<FeedKind, { text: string; emoji: string; floats: string[] }> = {
+  hunger: { text: '啊呜～', emoji: '🍖', floats: ['🍖', '🍗', '🍎'] },
+  cleanliness: { text: '洗香香～', emoji: '🧼', floats: ['🫧', '🧼', '💧'] },
+  happiness: { text: '好好玩～', emoji: '🧸', floats: ['🧸', '⚽', '❤️'] },
+}
+
+const props = defineProps<{
   student: Student
   deleteMode: boolean
   markedForDelete: boolean
   scoreAnimation: ScoreAnimation | null
+  feedAnimation: FeedKind | null
 }>()
+
+const feedCfg = computed(() => (props.feedAnimation ? FEED_CONFIG[props.feedAnimation] : null))
 
 const emit = defineEmits<{
   (e: 'click', student: Student): void
@@ -71,7 +83,7 @@ const emit = defineEmits<{
       <template v-if="student.pet_type">
         <div
           class="w-full h-full overflow-hidden transition-all duration-300"
-          :class="student.deco_bg ? 'p-3 sm:p-4' : ''"
+          :class="[student.deco_bg ? 'p-3 sm:p-4' : '', feedCfg ? 'animate-feed-bounce' : '']"
           style="border-radius: 14px 14px 0 0; margin: -1px -1px 0 -1px; width: calc(100% + 2px);"
         >
           <PetImage
@@ -89,6 +101,20 @@ const emit = defineEmits<{
       <div v-else class="flex flex-col items-center">
         <span class="text-6xl pet-unknown">❓</span>
         <span class="text-xs text-gray-400 mt-2 group-hover:text-orange-400 transition-colors">点击领养</span>
+      </div>
+
+      <!-- 喂养过程动画:气泡台词 + 飘落 emoji(盖住挂饰/徽章,2.5s 自动消失) -->
+      <div v-if="feedCfg" class="absolute inset-0 z-30 pointer-events-none">
+        <div class="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-1 feed-bubble">
+          <span>{{ feedCfg.emoji }}</span>
+          <span class="text-sm font-bold text-gray-700 whitespace-nowrap">{{ feedCfg.text }}</span>
+        </div>
+        <span
+          v-for="(f, i) in feedCfg.floats"
+          :key="i"
+          class="absolute feed-float text-2xl"
+          :style="{ left: `${20 + i * 22}%`, animationDelay: `${i * 0.25}s` }"
+        >{{ f }}</span>
       </div>
 
       <!-- 特效粒子层(覆盖宠物区;无 z-index,先于挂饰渲染,故挂饰/等级徽章盖在粒子之上) -->
@@ -173,6 +199,86 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
+/* 喂养过程动画:宠物弹跳 */
+@keyframes feedBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(0);
+  }
+  80% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-feed-bounce {
+  animation: feedBounce 0.6s ease;
+}
+
+/* 气泡台词:弹出 → 停留 → 淡出,带指向宠物的白色小尾巴 */
+.feed-bubble {
+  background: #fff;
+  border-radius: 12px;
+  padding: 4px 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  animation: feedBubble 2.4s ease forwards;
+}
+
+.feed-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #fff;
+}
+
+@keyframes feedBubble {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.6);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(0) scale(1.05);
+  }
+  20% {
+    transform: translateY(0) scale(1);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* 飘落 emoji:从顶部落到宠物身上 */
+.feed-float {
+  top: -20px;
+  animation: feedFloat 2s ease-in forwards;
+}
+
+@keyframes feedFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(130px) rotate(30deg);
+  }
+}
+
 /* 评分动效 */
 .score-pop-enter-active {
   animation: scorePopIn 0.5s ease-out;

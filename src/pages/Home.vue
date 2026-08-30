@@ -12,7 +12,6 @@ import SelectPetModal from '@/components/home/SelectPetModal.vue'
 import RecordsModal from '@/components/home/RecordsModal.vue'
 import RulesModal from '@/components/home/RulesModal.vue'
 import StudentDetailPanel from '@/components/home/StudentDetailPanel.vue'
-import ShopModal from '@/components/home/ShopModal.vue'
 import { useToast } from '@/composables/useToast'
 import { getStudents, addStudent, updateStudentPet, updateStudentPetName, deleteStudent, buyShopItem, buyDecoration, wearDecoration, takeOffDecoration } from '@/db/classes'
 import { getRules, addRule, deleteRule } from '@/db/rules'
@@ -91,12 +90,17 @@ const isLoading = ref(true)
 const showDetailPanel = ref(false)
 const detailStudent = ref<Student | null>(null)
 
-// 商城
-const showShopModal = ref(false)
-const shopStudent = ref<Student | null>(null)
-
 // 评分动效
 const scoreAnimations = ref<Map<string, { points: number, show: boolean }>>(new Map())
+
+// 喂养过程动画(卡片气泡台词,2.5s 自动消失)
+const feedAnimations = ref<Map<string, 'hunger' | 'cleanliness' | 'happiness'>>(new Map())
+function triggerFeedAnimation(studentId: string, kind: 'hunger' | 'cleanliness' | 'happiness') {
+  feedAnimations.value.set(studentId, kind)
+  setTimeout(() => {
+    feedAnimations.value.delete(studentId)
+  }, 2500)
+}
 
 // 学生评价记录
 const studentRecords = ref<EvaluationRecord[]>([])
@@ -210,25 +214,21 @@ function closeDetailPanel() {
   studentRecords.value = []
 }
 
-// 打开商城(为当前详情面板的宝贝)
-function openShop() {
-  if (!detailStudent.value) return
-  shopStudent.value = detailStudent.value
-  showShopModal.value = true
-}
-
-// 商城购买
+// 商城购买(商城已内嵌详情面板)
 async function handleShopBuy(item: ShopItem) {
-  if (!shopStudent.value) return
-  const studentId = shopStudent.value.id
+  if (!detailStudent.value) return
+  const studentId = detailStudent.value.id
   try {
     const res = await buyShopItem(studentId, item)
+    // 卡片上播放吃东西/洗澡/玩玩具过程动画(与休眠与否无关,动作已发生)
+    triggerFeedAnimation(studentId, item.target)
     if (res.gainedPoints > 0) {
       toast.success(`购买成功！${item.name}，成长值 +${res.gainedPoints}`)
     } else {
       toast.success(`购买成功！${item.name}（休眠中，不涨成长值）`)
     }
-    showShopModal.value = false
+    // 关闭详情面板,让卡片上的喂养动画不被遮挡、立即可见
+    closeDetailPanel()
     // 成长值由喂养驱动,购买可能触发升级/毕业动画
     if (res.graduated) {
       toast.success(`🎓 恭喜！${res.student.name} 的宠物毕业了，获得了专属徽章！`)
@@ -237,38 +237,31 @@ async function handleShopBuy(item: ShopItem) {
       triggerLevelUpAnimation(res.student, res.student.pet_level)
     }
     await loadStudents()
-    // 就地刷新详情面板,指标/星星即时更新
-    if (detailStudent.value) {
-      detailStudent.value = students.value.find(s => s.id === detailStudent.value?.id) || null
-    }
   } catch (error) {
     console.error('购买失败:', error)
     toast.error(error instanceof Error ? error.message : '购买失败')
   }
 }
 
-// 商城装扮操作:购买 / 戴上 / 卸下。免费操作不关弹窗,方便连续换装
+// 商城装扮操作:购买 / 戴上 / 卸下。免费操作不关面板,方便连续换装
 async function handleDecor(action: DecorAction, item: DecorationItem) {
-  if (!shopStudent.value) return
-  const studentId = shopStudent.value.id
+  if (!detailStudent.value) return
+  const studentId = detailStudent.value.id
   try {
     if (action === 'buy') {
       await buyDecoration(studentId, item)
-      toast.success(`已为 ${shopStudent.value.name} 买下「${item.name}」！`)
+      toast.success(`已为 ${detailStudent.value.name} 买下「${item.name}」！`)
     } else if (action === 'wear') {
       await wearDecoration(studentId, item)
-      toast.success(`已为 ${shopStudent.value.name} 戴上「${item.name}」！`)
+      toast.success(`已为 ${detailStudent.value.name} 戴上「${item.name}」！`)
     } else {
       await takeOffDecoration(studentId, item)
       toast.success(`已卸下「${item.name}」`)
     }
     await loadStudents()
-    // 就地刷新详情面板与商城余额/穿戴状态,弹窗保持打开
+    // 就地刷新详情面板,商城 tab 内穿戴状态即时更新(面板保持打开)
     if (detailStudent.value) {
       detailStudent.value = students.value.find(s => s.id === detailStudent.value?.id) || null
-    }
-    if (shopStudent.value) {
-      shopStudent.value = students.value.find(s => s.id === shopStudent.value!.id) || shopStudent.value
     }
   } catch (error) {
     console.error('装饰操作失败:', error)
@@ -528,6 +521,7 @@ onMounted(async () => {
             :delete-mode="showDeleteStudentMode"
             :marked-for-delete="deleteStudentList.includes(student.id)"
             :score-animation="scoreAnimations.get(student.id) || null"
+            :feed-animation="feedAnimations.get(student.id) || null"
             @click="handleStudentCardClick"
           />
         </div>
@@ -587,16 +581,8 @@ onMounted(async () => {
       @change-pet="changeDetailPet"
       @save-pet-name="savePetName"
       @quick-add="detailQuickAdd"
-      @open-shop="openShop"
-    />
-
-    <!-- 宠物商城 -->
-    <ShopModal
-      :show="showShopModal"
-      :student="shopStudent"
-      @close="showShopModal = false"
-      @buy="handleShopBuy"
-      @decor="handleDecor"
+      @shop-buy="handleShopBuy"
+      @shop-decor="handleDecor"
     />
 
     <!-- 确认对话框 -->

@@ -4,8 +4,11 @@ import { getLevelProgress, getPetType } from '@/data/pets'
 import { getDisplayLevel, getStudentPetImage } from '@/utils/levelStyle'
 import { getDecorBgClass, getDecorPendantEmoji } from '@/data/decorations'
 import ParticleEffect from '@/components/ParticleEffect.vue'
+import ShopContent from './ShopContent.vue'
 import { EVALUATION_CATEGORIES } from '@/data/categories'
 import { METRICS, isSleeping } from '@/data/shop'
+import type { ShopItem } from '@/data/shop'
+import type { DecorationItem, DecorAction } from '@/data/decorations'
 import type { EvaluationRecord, Rule, Student } from '@/types'
 
 const props = defineProps<{
@@ -20,8 +23,12 @@ const emit = defineEmits<{
   (e: 'changePet'): void
   (e: 'savePetName', name: string): void
   (e: 'quickAdd', rule: Rule): void
-  (e: 'openShop'): void
+  (e: 'shopBuy', item: ShopItem): void
+  (e: 'shopDecor', action: DecorAction, item: DecorationItem): void
 }>()
+
+// 面板内 tab:评价 / 商城
+const panelTab = ref<'eval' | 'shop'>('eval')
 
 // 生存指标展示列表
 const metricsList = [
@@ -42,6 +49,7 @@ watch(() => props.show, (value) => {
   if (value) {
     evalTab.value = '学习'
     editingPetName.value = false
+    panelTab.value = 'eval'
   }
 })
 
@@ -146,7 +154,7 @@ function formatTime(timestamp: number): string {
           </div>
         </div>
 
-        <!-- 宠物状态 -->
+        <!-- 宠物状态(常驻,不参与 tab 切换) -->
         <div class="p-4 sm:p-6 border-b border-gray-100">
           <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
             <span>💖</span> 宠物状态
@@ -170,6 +178,31 @@ function formatTime(timestamp: number): string {
             </div>
           </div>
         </div>
+
+        <!-- 面板内 tab:评价 / 商城 -->
+        <div class="flex gap-1.5 p-4 sm:p-6 pb-0">
+          <button
+            @click="panelTab = 'eval'"
+            class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
+            :class="panelTab === 'eval'
+              ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
+          >
+            ⚡ 评价
+          </button>
+          <button
+            @click="panelTab = 'shop'"
+            class="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
+            :class="panelTab === 'shop'
+              ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow'
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
+          >
+            🛒 商城
+          </button>
+        </div>
+
+        <!-- 评价 tab -->
+        <template v-if="panelTab === 'eval'">
 
         <!-- 快速评分 -->
         <div class="p-4 sm:p-6 border-b border-gray-100">
@@ -214,17 +247,6 @@ function formatTime(timestamp: number): string {
           </div>
         </div>
 
-        <!-- 商城入口 -->
-        <div class="p-4 sm:p-6 border-b border-gray-100">
-          <button
-            @click="emit('openShop')"
-            class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-400 to-pink-500 text-white font-bold flex items-center justify-center gap-2 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all"
-          >
-            <span class="text-xl">🛒</span> 宠物商城
-            <span class="text-xs font-medium bg-white/20 px-2 py-0.5 rounded-full">✨ {{ student.stars }}</span>
-          </button>
-        </div>
-
         <!-- 最近记录 -->
         <div class="p-4 sm:p-6">
           <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
@@ -256,6 +278,18 @@ function formatTime(timestamp: number): string {
             </div>
           </div>
         </div>
+        </template>
+
+        <!-- 商城 tab -->
+        <template v-else>
+          <div class="p-4 sm:p-6">
+            <ShopContent
+              :student="student"
+              @buy="emit('shopBuy', $event)"
+              @decor="(action, item) => emit('shopDecor', action, item)"
+            />
+          </div>
+        </template>
       </div>
     </div>
   </Transition>
