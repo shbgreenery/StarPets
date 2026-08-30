@@ -9,7 +9,6 @@ import StudentCard from '@/components/home/StudentCard.vue'
 import BatchActionBar from '@/components/home/BatchActionBar.vue'
 import DeleteStudentsBar from '@/components/home/DeleteStudentsBar.vue'
 import AddStudentModal from '@/components/home/AddStudentModal.vue'
-import ImportStudentsModal from '@/components/home/ImportStudentsModal.vue'
 import EvaluationModal from '@/components/home/EvaluationModal.vue'
 import SelectPetModal from '@/components/home/SelectPetModal.vue'
 import RankingModal from '@/components/home/RankingModal.vue'
@@ -17,7 +16,7 @@ import RecordsModal from '@/components/home/RecordsModal.vue'
 import RulesModal from '@/components/home/RulesModal.vue'
 import StudentDetailPanel from '@/components/home/StudentDetailPanel.vue'
 import { useToast } from '@/composables/useToast'
-import { getStudents, addStudent, importStudents, updateStudentPet, updateStudentPetName, deleteStudent } from '@/db/classes'
+import { getStudents, addStudent, updateStudentPet, updateStudentPetName, deleteStudent } from '@/db/classes'
 import { getRules, addRule, deleteRule } from '@/db/rules'
 import { addEvaluation, getStudentEvaluations, getEvaluations, deleteEvaluation, deleteLatestEvaluation } from '@/db/evaluations'
 import type { EvaluationRecord, Rule, Student } from '@/types'
@@ -32,7 +31,6 @@ const searchQuery = ref('')
 
 // 模态框显隐
 const showStudentModal = ref(false)
-const showImportModal = ref(false)
 const showAddModal = ref(false)
 const showRankModal = ref(false)
 const showPetModal = ref(false)
@@ -54,10 +52,6 @@ const evaluationRecords = ref<EvaluationRecord[]>([])
 const recordsPage = ref(1)
 const recordsPageSize = 20
 const totalRecords = ref(0)
-
-// 排序
-const sortBy = ref<'name' | 'progress'>('name')
-const sortOrder = ref<'asc' | 'desc'>('asc')
 
 // 确认对话框状态
 const confirmDialog = ref({
@@ -113,31 +107,8 @@ const studentRecords = ref<EvaluationRecord[]>([])
 
 // Computed
 const filteredStudents = computed(() => {
-  let result = [...students.value]
-  if (searchQuery.value) {
-    result = result.filter(s => s.name.includes(searchQuery.value))
-  }
-
-  result.sort((a, b) => {
-    let comparison = 0
-    switch (sortBy.value) {
-      case 'name':
-        comparison = a.name.localeCompare(b.name)
-        break
-      case 'progress':
-        const levelA = a.pet_level || 0
-        const levelB = b.pet_level || 0
-        if (levelA !== levelB) {
-          comparison = levelA - levelB
-        } else {
-          comparison = (a.pet_exp || 0) - (b.pet_exp || 0)
-        }
-        break
-    }
-    return sortOrder.value === 'asc' ? comparison : -comparison
-  })
-
-  return result
+  if (!searchQuery.value) return students.value
+  return students.value.filter(s => s.name.includes(searchQuery.value))
 })
 
 // 排行榜（按积分倒序）
@@ -149,14 +120,6 @@ const ranking = computed(() => {
 const totalPages = computed(() => {
   return Math.ceil(totalRecords.value / recordsPageSize)
 })
-
-// 排序状态（传递给顶部导航）
-const sort = computed(() => ({ by: sortBy.value, order: sortOrder.value }))
-
-function handleSortChange(value: { by: 'name' | 'progress'; order: 'asc' | 'desc' }) {
-  sortBy.value = value.by
-  sortOrder.value = value.order
-}
 
 // API calls
 async function loadStudents() {
@@ -175,32 +138,6 @@ async function handleAddStudent(name: string) {
   } catch (error) {
     console.error('添加宝贝失败:', error)
     toast.error('添加宝贝失败，请重试')
-  }
-}
-
-async function handleImportStudents(text: string) {
-  const lines = text.trim().split('\n')
-  const list: { name: string }[] = []
-
-  for (const line of lines) {
-    const name = line.trim()
-    if (!name) continue
-    list.push({ name })
-  }
-
-  if (list.length === 0) {
-    toast.warning('没有识别到宝贝信息')
-    return
-  }
-
-  try {
-    const res = await importStudents(list)
-    toast.success(`成功导入 ${res.imported} 个宝贝`)
-    showImportModal.value = false
-    await loadStudents()
-  } catch (error) {
-    console.error('导入失败:', error)
-    toast.error('导入失败，请重试')
   }
 }
 
@@ -637,10 +574,7 @@ onMounted(async () => {
       :student-count="students.length"
       v-model:search-query="searchQuery"
       :batch-mode="batchMode"
-      :sort="sort"
-      @sort-change="handleSortChange"
       @add-student="showStudentModal = true"
-      @import-students="showImportModal = true"
       @delete-students="startDeleteMode"
       @start-batch="startBatchMode"
       @show-rank="showRankModal = true"
@@ -662,12 +596,6 @@ onMounted(async () => {
               class="bg-gradient-to-r from-orange-400 to-pink-500 text-white px-6 py-3 rounded-2xl hover:shadow-lg hover:scale-105 transition-all font-bold"
             >
               ➕ 添加宝贝
-            </button>
-            <button
-              @click="showImportModal = true"
-              class="bg-white text-gray-700 px-6 py-3 rounded-2xl hover:shadow-lg hover:scale-105 transition-all font-bold border border-gray-200"
-            >
-              📥 批量导入
             </button>
           </div>
         </div>
@@ -708,13 +636,6 @@ onMounted(async () => {
       :show="showStudentModal"
       @close="showStudentModal = false"
       @submit="handleAddStudent"
-    />
-
-    <!-- 批量导入模态框 -->
-    <ImportStudentsModal
-      :show="showImportModal"
-      @close="showImportModal = false"
-      @submit="handleImportStudents"
     />
 
     <!-- 评价模态框 -->

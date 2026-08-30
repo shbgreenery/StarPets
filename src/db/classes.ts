@@ -26,21 +26,6 @@ export async function deleteStudent(id: string): Promise<void> {
   })
 }
 
-export async function importStudents(list: { name: string }[]): Promise<{ imported: number }> {
-  const now = Date.now()
-  const rows: StudentRow[] = []
-  for (const s of list) {
-    const name = s.name?.trim()
-    if (!name) continue
-    rows.push({
-      id: crypto.randomUUID(), name,
-      total_points: 0, pet_type: null, pet_name: null, pet_level: 1, pet_exp: 0, created_at: now
-    })
-  }
-  await db.students.bulkAdd(rows)
-  return { imported: rows.length }
-}
-
 export async function updateStudentPet(id: string, petType: string, petName?: string): Promise<void> {
   await db.students.update(id, { pet_type: petType, pet_name: petName?.trim() || null })
 }

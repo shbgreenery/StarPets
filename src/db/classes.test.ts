@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { db, initDb, clearAll } from './index'
-import { getStudents, addStudent, deleteStudent, importStudents, updateStudentPet, updateStudentPetName } from './classes'
+import { getStudents, addStudent, deleteStudent, updateStudentPet, updateStudentPetName } from './classes'
 
 beforeEach(async () => {
   await db.open()
@@ -23,18 +23,6 @@ describe('宝贝', () => {
     await addStudent('张三')
     const students = await getStudents()
     expect(students.map(s => s.name)).toEqual(['张三', '李四'])
-  })
-
-  it('批量导入跳过空名字', async () => {
-    const res = await importStudents([
-      { name: ' 王五 ' },
-      { name: '   ' },
-      { name: '赵六' }
-    ])
-    expect(res.imported).toBe(2)
-    const students = await getStudents()
-    expect(students).toHaveLength(2)
-    expect(students.map(s => s.name)).toEqual(['王五', '赵六'])
   })
 
   it('删除宝贝级联删除评价记录', async () => {
