@@ -105,7 +105,7 @@ function formatTime(timestamp: number): string {
               <p v-else class="text-white/80 text-sm">
                 {{ student.pet_type ? (student.pet_name || getPetType(student.pet_type)?.name) : '未领养' }}
                 · Lv.{{ getDisplayLevel(student) }}
-                · ⭐ {{ student.total_points }}
+                · 成长值 {{ student.total_points }}
                 · ✨ {{ student.stars }}
               </p>
             </div>

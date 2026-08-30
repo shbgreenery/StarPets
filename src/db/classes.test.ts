@@ -96,50 +96,81 @@ describe('指标衰减', () => {
     const [st] = await getStudents()
     expect(st.last_decay_at).toBe(old + 30 * 60 * 1000)
   })
+
+  it('时间不再涨成长值', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { total_points: 10, pet_exp: 10, last_decay_at: Date.now() - 62 * 60 * 1000 })
+    const [st] = await getStudents()
+    expect(st.hunger).toBe(78)
+    expect(st.total_points).toBe(10)
+    expect(st.pet_exp).toBe(10)
+    expect(st.pet_level).toBe(1)
+  })
 })
 
-describe('成长值时间增长', () => {
-  it('三指标≥10 时每30分钟成长值+1', async () => {
+describe('成长值喂养规则', () => {
+  const chicken = SHOP_ITEMS.find(i => i.id === 'chicken')!
+  const apple = SHOP_ITEMS.find(i => i.id === 'apple')!
+
+  it('成长状态喂养按物品加值/5加成长值(向下取整)', async () => {
     const s = await addStudent('张三')
-    await db.students.update(s.id, { last_decay_at: Date.now() - 31 * 60 * 1000 })
-    const [st] = await getStudents()
-    expect(st.total_points).toBe(1)
-    expect(st.pet_exp).toBe(1)
+    await db.students.update(s.id, { stars: 20, hunger: 50 })
+    const res = await buyShopItem(s.id, chicken) // +30 饥饿 → 30/5=6
+    expect(res.student.total_points).toBe(6)
+    expect(res.student.pet_exp).toBe(6)
+    expect(res.student.hunger).toBe(80)
+    expect(res.student.stars).toBe(10)
+    expect(res.leveledUp).toBe(false)
   })
 
-  it('三指标任一<10 不涨成长值但指标照常衰减', async () => {
+  it('小件加值15 → 成长值+3', async () => {
     const s = await addStudent('张三')
-    await db.students.update(s.id, { hunger: 9, last_decay_at: Date.now() - 31 * 60 * 1000 })
-    const [st] = await getStudents()
-    expect(st.total_points).toBe(0)
-    expect(st.pet_exp).toBe(0)
-    expect(st.hunger).toBe(8)
+    await db.students.update(s.id, { stars: 20, hunger: 50 })
+    const res = await buyShopItem(s.id, apple)
+    expect(res.student.total_points).toBe(3)
+    expect(res.student.hunger).toBe(65)
   })
 
-  it('指标为0休眠不涨成长值', async () => {
+  it('休眠状态喂养只恢复指标不涨成长值', async () => {
     const s = await addStudent('张三')
-    await db.students.update(s.id, { happiness: 0, last_decay_at: Date.now() - 31 * 60 * 1000 })
-    const [st] = await getStudents()
-    expect(st.total_points).toBe(0)
-    expect(st.pet_exp).toBe(0)
-    expect(st.happiness).toBe(0)
+    await db.students.update(s.id, { happiness: 0, stars: 20, hunger: 50 })
+    const res = await buyShopItem(s.id, chicken) // 快乐=0 处于休眠,买食物
+    expect(res.student.hunger).toBe(80) // 指标照常恢复
+    expect(res.student.total_points).toBe(0)
+    expect(res.student.pet_exp).toBe(0)
+    expect(res.leveledUp).toBe(false)
   })
 
-  it('购买补给解除休眠后恢复增长', async () => {
+  it('休眠购买恢复后再次喂养涨成长值', async () => {
     const s = await addStudent('张三')
-    await db.students.update(s.id, { happiness: 0, stars: 10 })
-    await buyShopItem(s.id, SHOP_ITEMS.find(i => i.id === 'bear')!)
-    await db.students.update(s.id, { last_decay_at: Date.now() - 31 * 60 * 1000 })
-    const [st] = await getStudents()
-    expect(st.happiness).toBe(29)
-    expect(st.total_points).toBe(1)
+    await db.students.update(s.id, { happiness: 0, stars: 30 })
+    const bear = SHOP_ITEMS.find(i => i.id === 'bear')!
+    await buyShopItem(s.id, bear) // +30 快乐解除休眠,但休眠时不涨
+    let st = await db.students.get(s.id)
+    expect(st?.happiness).toBe(30)
+    expect(st?.total_points).toBe(0)
+    await buyShopItem(s.id, chicken) // 已非休眠,涨
+    st = await db.students.get(s.id)
+    expect(st?.total_points).toBe(6)
   })
 
-  it('成长值跨过8级阈值触发毕业徽章', async () => {
+  it('喂养升级但未毕业不触发徽章', async () => {
     const s = await addStudent('张三')
-    await db.students.update(s.id, { pet_type: 'corgi', total_points: 699, pet_exp: 699, pet_level: 7 })
-    await db.students.update(s.id, { last_decay_at: Date.now() - 31 * 60 * 1000 })
-    await getStudents()
+    await db.students.update(s.id, { pet_type: 'corgi', total_points: 94, pet_exp: 94, pet_level: 2, stars: 20 })
+    const res = await buyShopItem(s.id, chicken) // 94+6=100 → 3级
+    expect(res.leveledUp).toBe(true)
+    expect(res.graduated).toBe(false)
+    expect(res.student.pet_level).toBe(3)
+    expect(await db.badges.count()).toBe(0)
+  })
+
+  it('喂养跨过8级阈值触发毕业徽章', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { pet_type: 'corgi', total_points: 694, pet_exp: 694, pet_level: 7, stars: 20 })
+    const res = await buyShopItem(s.id, chicken) // 694+6=700 → 8级毕业
+    expect(res.leveledUp).toBe(true)
+    expect(res.graduated).toBe(true)
+    expect(res.student.pet_level).toBe(8)
     expect(await db.badges.count()).toBe(1)
   })
 })

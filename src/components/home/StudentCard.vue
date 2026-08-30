@@ -125,9 +125,9 @@ const emit = defineEmits<{
             <span>{{ getLevelProgress(student.pet_exp).required }}</span>
           </template>
         </span>
-        <span class="font-bold text-lg flex items-center gap-1">
-          <span class="text-yellow-400">⭐</span>
-          <span class="text-orange-500">{{ student.total_points }}</span>
+        <span class="font-bold text-lg flex items-center gap-1" title="星星余额（评价所得，商城花费后剩余）">
+          <span class="text-yellow-400">✨</span>
+          <span class="text-orange-500">{{ student.stars }}</span>
         </span>
       </div>
 

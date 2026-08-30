@@ -32,12 +32,7 @@ export const METRICS: Record<'hunger' | 'cleanliness' | 'happiness', { label: st
   happiness: { label: '快乐指数', emoji: '🧸', barClass: 'bg-gradient-to-r from-pink-400 to-rose-400' },
 }
 
-// 成长值增长条件:三指标都 ≥10
-export function canGrow(student: Pick<Student, 'hunger' | 'cleanliness' | 'happiness'>): boolean {
-  return student.hunger >= 10 && student.cleanliness >= 10 && student.happiness >= 10
-}
-
-// 休眠:任一指标为 0(购买补给恢复后自动解除)
+// 休眠:任一指标为 0(购买补给恢复后自动解除);成长状态 = 非休眠(三指标都 > 0)
 export function isSleeping(student: Pick<Student, 'hunger' | 'cleanliness' | 'happiness'>): boolean {
   return student.hunger === 0 || student.cleanliness === 0 || student.happiness === 0
 }

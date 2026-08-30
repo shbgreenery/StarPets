@@ -115,18 +115,7 @@ const totalPages = computed(() => {
 
 // API calls
 async function loadStudents() {
-  // 记录加载前等级,getStudents 会应用时间驱动的成长值,升级后触发动画
-  const prev = new Map(students.value.map(s => [s.id, s.pet_level]))
   students.value = await getStudents()
-  for (const s of students.value) {
-    const old = prev.get(s.id)
-    if (old !== undefined && s.pet_level > old) {
-      triggerLevelUpAnimation(s, s.pet_level)
-      if (s.pet_level === 8) {
-        toast.success(`🎓 恭喜！${s.name} 的宠物毕业了，获得了专属徽章！`)
-      }
-    }
-  }
 }
 
 async function loadRules() {
@@ -239,9 +228,20 @@ async function handleShopBuy(item: ShopItem) {
   if (!shopStudent.value) return
   const studentId = shopStudent.value.id
   try {
-    await buyShopItem(studentId, item)
-    toast.success(`购买成功！${item.name}`)
+    const res = await buyShopItem(studentId, item)
+    if (res.gainedPoints > 0) {
+      toast.success(`购买成功！${item.name}，成长值 +${res.gainedPoints}`)
+    } else {
+      toast.success(`购买成功！${item.name}（休眠中，不涨成长值）`)
+    }
     showShopModal.value = false
+    // 成长值由喂养驱动,购买可能触发升级/毕业动画
+    if (res.graduated) {
+      toast.success(`🎓 恭喜！${res.student.name} 的宠物毕业了，获得了专属徽章！`)
+      triggerLevelUpAnimation(res.student, res.student.pet_level)
+    } else if (res.leveledUp) {
+      triggerLevelUpAnimation(res.student, res.student.pet_level)
+    }
     await loadStudents()
     // 就地刷新详情面板,指标/星星即时更新
     if (detailStudent.value) {
