@@ -23,9 +23,9 @@ watch(() => props.show, (value) => {
   if (value) tab.value = props.initialTab
 })
 
-// 当前分类下的规则
+// 当前分类下的规则(去掉扣分,只显示加分)
 const currentRules = computed(() => {
-  return props.rules.filter(r => r.category === tab.value)
+  return props.rules.filter(r => r.category === tab.value && r.points > 0)
 })
 </script>
 

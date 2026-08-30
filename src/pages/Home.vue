@@ -15,10 +15,12 @@ import RankingModal from '@/components/home/RankingModal.vue'
 import RecordsModal from '@/components/home/RecordsModal.vue'
 import RulesModal from '@/components/home/RulesModal.vue'
 import StudentDetailPanel from '@/components/home/StudentDetailPanel.vue'
+import ShopModal from '@/components/home/ShopModal.vue'
 import { useToast } from '@/composables/useToast'
-import { getStudents, addStudent, updateStudentPet, updateStudentPetName, deleteStudent } from '@/db/classes'
+import { getStudents, addStudent, updateStudentPet, updateStudentPetName, deleteStudent, buyShopItem } from '@/db/classes'
 import { getRules, addRule, deleteRule } from '@/db/rules'
 import { addEvaluation, getStudentEvaluations, getEvaluations, deleteEvaluation, deleteLatestEvaluation } from '@/db/evaluations'
+import type { ShopItem } from '@/data/shop'
 import type { EvaluationRecord, Rule, Student } from '@/types'
 
 // Toast 提示
@@ -98,6 +100,10 @@ const isLoading = ref(true)
 const showDetailPanel = ref(false)
 const detailStudent = ref<Student | null>(null)
 
+// 商城
+const showShopModal = ref(false)
+const shopStudent = ref<Student | null>(null)
+
 // 评分动效
 const scoreAnimations = ref<Map<string, { points: number, show: boolean }>>(new Map())
 
@@ -117,7 +123,18 @@ const totalPages = computed(() => {
 
 // API calls
 async function loadStudents() {
+  // 记录加载前等级,getStudents 会应用时间驱动的成长值,升级后触发动画
+  const prev = new Map(students.value.map(s => [s.id, s.pet_level]))
   students.value = await getStudents()
+  for (const s of students.value) {
+    const old = prev.get(s.id)
+    if (old !== undefined && s.pet_level > old) {
+      triggerLevelUpAnimation(s, s.pet_level)
+      if (s.pet_level === 8) {
+        toast.success(`🎓 恭喜！${s.name} 的宠物毕业了，获得了专属徽章！`)
+      }
+    }
+  }
 }
 
 async function loadRules() {
@@ -216,6 +233,32 @@ function closeDetailPanel() {
   showDetailPanel.value = false
   detailStudent.value = null
   studentRecords.value = []
+}
+
+// 打开商城(为当前详情面板的宝贝)
+function openShop() {
+  if (!detailStudent.value) return
+  shopStudent.value = detailStudent.value
+  showShopModal.value = true
+}
+
+// 商城购买
+async function handleShopBuy(item: ShopItem) {
+  if (!shopStudent.value) return
+  const studentId = shopStudent.value.id
+  try {
+    await buyShopItem(studentId, item)
+    toast.success(`购买成功！${item.name}`)
+    showShopModal.value = false
+    await loadStudents()
+    // 就地刷新详情面板,指标/星星即时更新
+    if (detailStudent.value) {
+      detailStudent.value = students.value.find(s => s.id === detailStudent.value?.id) || null
+    }
+  } catch (error) {
+    console.error('购买失败:', error)
+    toast.error(error instanceof Error ? error.message : '购买失败')
+  }
 }
 
 // 详情面板：更换宠物
@@ -349,12 +392,7 @@ async function detailQuickAdd(rule: Rule) {
     // 触发卡片动效
     triggerScoreAnimation(student.id, rule.points)
 
-    if (res.levelUp) {
-      triggerLevelUpAnimation(student, res.petLevel)
-    }
-    if (res.graduated) {
-      toast.success(`🎓 恭喜！${student.name} 的宠物毕业了，获得了专属徽章！`)
-    }
+    toast.success(`评价完成，获得 ✨${res.starsGained} 星`)
 
     await loadStudents()
 
@@ -405,7 +443,7 @@ async function quickAdd(student: Student | null, rule: Rule) {
     }
 
     showAddModal.value = false
-    toast.success(`已为 ${successCount} 个宝贝${rule.points > 0 ? '加' : '扣'}${Math.abs(rule.points)}分`)
+    toast.success(`已为 ${successCount} 个宝贝完成评价`)
     cancelBatchMode()
     await loadStudents()
     return
@@ -422,12 +460,7 @@ async function quickAdd(student: Student | null, rule: Rule) {
     // 触发动效
     triggerScoreAnimation(student.id, rule.points)
 
-    if (res.levelUp) {
-      triggerLevelUpAnimation(student, res.petLevel)
-    }
-    if (res.graduated) {
-      toast.success(`🎓 恭喜！${student.name} 的宠物毕业了，获得了专属徽章！`)
-    }
+    toast.success(`评价完成，获得 ✨${res.starsGained} 星`)
 
     await loadStudents()
   } catch (error) {
@@ -487,7 +520,7 @@ async function undoLastEvaluation(recordId?: string) {
         }
 
         if (res.success) {
-          toast.success(`已撤回：${res.undone.student_name} ${res.undone.points > 0 ? '+' : ''}${res.undone.points}分`)
+          toast.success(`已撤回 ${res.undone.student_name} 的评价`)
           await loadStudents()
           await loadEvaluationRecords()
         }
@@ -690,6 +723,15 @@ onMounted(async () => {
       @change-pet="changeDetailPet"
       @save-pet-name="savePetName"
       @quick-add="detailQuickAdd"
+      @open-shop="openShop"
+    />
+
+    <!-- 宠物商城 -->
+    <ShopModal
+      :show="showShopModal"
+      :student="shopStudent"
+      @close="showShopModal = false"
+      @buy="handleShopBuy"
     />
 
     <!-- 确认对话框 -->

@@ -7,6 +7,12 @@ export interface Student {
   pet_name?: string | null
   pet_level: number
   pet_exp: number
+  // 生存指标(0-100)与星星货币
+  hunger: number
+  cleanliness: number
+  happiness: number
+  stars: number
+  last_decay_at: number
   created_at?: number
 }
 

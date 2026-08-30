@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { getLevelProgress, getPetType } from '@/data/pets'
 import { getDisplayLevel, getStudentPetImage } from '@/utils/levelStyle'
 import { EVALUATION_CATEGORIES } from '@/data/categories'
+import { METRICS, isSleeping } from '@/data/shop'
 import type { EvaluationRecord, Rule, Student } from '@/types'
 
 const props = defineProps<{
@@ -17,7 +18,15 @@ const emit = defineEmits<{
   (e: 'changePet'): void
   (e: 'savePetName', name: string): void
   (e: 'quickAdd', rule: Rule): void
+  (e: 'openShop'): void
 }>()
+
+// 生存指标展示列表
+const metricsList = [
+  { key: 'hunger' as const, ...METRICS.hunger },
+  { key: 'cleanliness' as const, ...METRICS.cleanliness },
+  { key: 'happiness' as const, ...METRICS.happiness },
+]
 
 // 宠物改名状态
 const editingPetName = ref(false)
@@ -97,6 +106,7 @@ function formatTime(timestamp: number): string {
                 {{ student.pet_type ? (student.pet_name || getPetType(student.pet_type)?.name) : '未领养' }}
                 · Lv.{{ getDisplayLevel(student) }}
                 · ⭐ {{ student.total_points }}
+                · ✨ {{ student.stars }}
               </p>
             </div>
           </div>
@@ -116,6 +126,31 @@ function formatTime(timestamp: number): string {
                 class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-yellow-300 via-amber-300 to-orange-300"
                 :style="{ width: `${getLevelProgress(student.pet_exp).percentage}%` }"
               ></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 宠物状态 -->
+        <div class="p-4 sm:p-6 border-b border-gray-100">
+          <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
+            <span>💖</span> 宠物状态
+            <span v-if="isSleeping(student)" class="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">💤 休眠中</span>
+          </h4>
+          <div class="space-y-3">
+            <div v-for="m in metricsList" :key="m.key">
+              <div class="flex items-center justify-between text-sm mb-1">
+                <span class="text-gray-600 flex items-center gap-1">
+                  <span>{{ m.emoji }}</span> {{ m.label }}
+                </span>
+                <span class="font-bold" :class="student[m.key] < 30 ? 'text-red-500' : 'text-gray-800'">{{ student[m.key] }}</span>
+              </div>
+              <div class="bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                <div
+                  class="h-full rounded-full transition-all duration-500"
+                  :class="m.barClass"
+                  :style="{ width: `${student[m.key]}%` }"
+                ></div>
+              </div>
             </div>
           </div>
         </div>
@@ -143,7 +178,7 @@ function formatTime(timestamp: number): string {
           <div class="max-h-[45vh] sm:h-[400px] overflow-y-auto pr-1 custom-scrollbar">
             <div class="grid grid-cols-3 sm:grid-cols-5 gap-2 content-start">
               <button
-                v-for="rule in rules.filter(r => r.category === evalTab)"
+                v-for="rule in rules.filter(r => r.category === evalTab && r.points > 0)"
                 :key="rule.id"
                 @click="emit('quickAdd', rule)"
                 class="rounded-xl p-2 text-center transition-all border-2 hover:scale-105 active:scale-95 h-auto min-h-[60px] sm:h-[70px]"
@@ -161,6 +196,17 @@ function formatTime(timestamp: number): string {
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- 商城入口 -->
+        <div class="p-4 sm:p-6 border-b border-gray-100">
+          <button
+            @click="emit('openShop')"
+            class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-400 to-pink-500 text-white font-bold flex items-center justify-center gap-2 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all"
+          >
+            <span class="text-xl">🛒</span> 宠物商城
+            <span class="text-xs font-medium bg-white/20 px-2 py-0.5 rounded-full">✨ {{ student.stars }}</span>
+          </button>
         </div>
 
         <!-- 最近记录 -->

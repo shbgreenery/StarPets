@@ -2,6 +2,7 @@
 import { getLevelProgress, getPetType } from '@/data/pets'
 import PetImage from '@/components/PetImage.vue'
 import { getDisplayLevel, getLevelBgClass, getLevelBorderClass, getStudentPetImage } from '@/utils/levelStyle'
+import { isSleeping } from '@/data/shop'
 import type { Student } from '@/types'
 
 interface ScoreAnimation {
@@ -97,6 +98,13 @@ const emit = defineEmits<{
         <span v-if="getDisplayLevel(student) >= 10">👑</span>
         <span v-else>Lv.</span>{{ getDisplayLevel(student) }}
       </div>
+
+      <!-- 休眠标记(任一指标为0) -->
+      <Transition name="pop">
+        <div v-if="isSleeping(student)" class="absolute top-3 right-3 w-9 h-9 rounded-full bg-indigo-500/90 flex items-center justify-center text-lg shadow-md z-10">
+          💤
+        </div>
+      </Transition>
     </div>
 
     <!-- 信息区域 -->
@@ -136,6 +144,13 @@ const emit = defineEmits<{
           :class="getDisplayLevel(student) >= 5 ? 'bg-gradient-to-r from-purple-400 via-pink-400 to-rose-400' : 'bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400'"
           :style="{ width: `${getLevelProgress(student.pet_exp).percentage}%` }"
         ></div>
+      </div>
+
+      <!-- 生存指标 -->
+      <div class="flex items-center justify-between text-[11px] text-gray-400 mt-2 px-0.5">
+        <span :class="student.hunger < 30 ? 'text-red-500 font-medium' : ''">🍗{{ student.hunger }}</span>
+        <span :class="student.cleanliness < 30 ? 'text-red-500 font-medium' : ''">🧼{{ student.cleanliness }}</span>
+        <span :class="student.happiness < 30 ? 'text-red-500 font-medium' : ''">🧸{{ student.happiness }}</span>
       </div>
     </div>
   </div>

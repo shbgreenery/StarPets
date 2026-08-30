@@ -1,6 +1,5 @@
 import { db } from './index'
 import type { EvaluationRecordRow } from './index'
-import { calculateLevel } from '@/data/pets'
 
 export interface AddEvaluationInput {
   studentId: string
@@ -9,38 +8,26 @@ export interface AddEvaluationInput {
   category: string
 }
 
+// 评价只给星星,不涨成长值(成长值随时间为半小时 +1,在 getStudents 时惰性计算)
 export async function addEvaluation(input: AddEvaluationInput) {
   const id = crypto.randomUUID()
   const now = Date.now()
 
-  return db.transaction('rw', [db.evaluation_records, db.students, db.badges], async () => {
+  return db.transaction('rw', [db.evaluation_records, db.students], async () => {
     await db.evaluation_records.add({
       id, student_id: input.studentId,
       points: input.points, reason: input.reason, category: input.category, timestamp: now
     })
 
     const student = await db.students.get(input.studentId)
-    if (!student) return { id, timestamp: now }
+    if (!student) return { id, timestamp: now, starsGained: 0 }
 
-    const newTotalPoints = student.total_points + input.points
-    await db.students.update(input.studentId, { total_points: newTotalPoints })
+    const starGain = input.points > 0 ? input.points : 0
+    await db.students.update(input.studentId, {
+      stars: (student.stars ?? 0) + starGain
+    })
 
-    if (student.pet_type) {
-      const newExp = Math.max(0, newTotalPoints)
-      const newLevel = calculateLevel(newExp)
-      let graduated = false
-      if (newLevel === 8 && student.pet_level < 8) {
-        await db.badges.add({ id: crypto.randomUUID(), student_id: input.studentId, pet_type: student.pet_type, earned_at: now })
-        graduated = true
-      }
-      await db.students.update(input.studentId, { pet_exp: newExp, pet_level: newLevel })
-      return {
-        id, timestamp: now, petLevel: newLevel, petExp: newExp,
-        levelUp: newLevel > student.pet_level, levelDown: newLevel < student.pet_level, graduated
-      }
-    }
-
-    return { id, timestamp: now }
+    return { id, timestamp: now, starsGained: starGain }
   })
 }
 
@@ -62,17 +49,14 @@ export async function getEvaluations(page: number, pageSize: number) {
   return { records, total, page, pageSize, totalPages: Math.ceil(total / pageSize) }
 }
 
+// 撤回:回滚星星并删除记录,不动成长值
 async function undoRecord(record: EvaluationRecordRow): Promise<{ success: true; undone: EvaluationRecordRow & { student_name: string } }> {
   const student = await db.students.get(record.student_id)
   return db.transaction('rw', [db.students, db.evaluation_records], async () => {
-    const expChange = Math.abs(record.points)
-    const newExp = Math.max(0, (student?.pet_exp ?? 0) - expChange)
-    const newLevel = calculateLevel(newExp)
     if (student) {
+      const starRefund = record.points > 0 ? -record.points : 0
       await db.students.update(student.id, {
-        total_points: student.total_points - record.points,
-        pet_exp: newExp,
-        pet_level: newLevel
+        stars: (student.stars ?? 0) + starRefund
       })
     }
     await db.evaluation_records.delete(record.id)

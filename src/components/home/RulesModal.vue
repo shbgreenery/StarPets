@@ -28,6 +28,7 @@ watch(() => props.show, (value) => {
 
 function addRule() {
   if (!newRuleName.value.trim()) return
+  if (!Number.isFinite(newRulePoints.value) || newRulePoints.value < 1) return
   emit('add', {
     name: newRuleName.value.trim(),
     points: newRulePoints.value,
@@ -72,6 +73,7 @@ function rulesOf(category: string): Rule[] {
             <input
               v-model.number="newRulePoints"
               type="number"
+              min="1"
               placeholder="分值"
               class="w-24 border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
             />

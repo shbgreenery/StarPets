@@ -5,7 +5,10 @@ import { DEFAULT_RULES } from '@/data/evaluation-rules'
 export interface StudentRow {
   id: string; name: string;
   total_points: number; pet_type: string | null; pet_name: string | null;
-  pet_level: number; pet_exp: number; created_at: number
+  pet_level: number; pet_exp: number;
+  hunger: number; cleanliness: number; happiness: number;
+  stars: number; last_decay_at: number;
+  created_at: number
 }
 export interface BadgeRow { id: string; student_id: string; pet_type: string; earned_at: number }
 export interface RuleRow { id: string; name: string; points: number; category: string; is_custom: number; created_at: number }
@@ -28,6 +31,18 @@ class PetGardenDB extends Dexie {
       evaluation_records: 'id, student_id, timestamp',
       settings: 'key'
     })
+    // v2: 学生新增生存指标/星星字段(无索引),为存量行回填默认值
+    this.version(2).stores({
+      students: 'id, name, total_points'
+    }).upgrade((tx) =>
+      tx.table('students').toCollection().modify((s) => {
+        s.hunger ??= 80
+        s.cleanliness ??= 80
+        s.happiness ??= 80
+        s.stars ??= 0
+        s.last_decay_at ??= Date.now()
+      })
+    )
   }
 }
 
