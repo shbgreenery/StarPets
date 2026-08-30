@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { SHOP_ITEMS, SHOP_GROUPS } from '@/data/shop'
 import type { ShopItem } from '@/data/shop'
 import { DECOR_ITEMS, DECOR_GROUPS, getDecorBgClass, PENDANT_LIMIT } from '@/data/decorations'
@@ -15,6 +16,21 @@ const emit = defineEmits<{
   (e: 'buy', item: ShopItem): void
   (e: 'decor', action: DecorAction, item: DecorationItem): void
 }>()
+
+// 当前选中的分类 tab(补给 target / 装饰 slot)
+type ShopTab = ShopItem['target'] | DecorationItem['slot']
+const activeTab = ref<ShopTab>('hunger')
+
+// 是否为补给分类(补给商品按 target 分组,装饰按 slot 分组)
+const isSupplyTab = computed(() =>
+  activeTab.value === 'hunger' || activeTab.value === 'cleanliness' || activeTab.value === 'happiness'
+)
+const activeSupplyGroup = computed(() => SHOP_GROUPS.find(g => g.target === activeTab.value) || null)
+const activeDecorGroup = computed(() => DECOR_GROUPS.find(g => g.slot === activeTab.value) || null)
+
+// 当前分类的商品
+const supplyItems = computed(() => SHOP_ITEMS.filter(i => i.target === activeTab.value))
+const decorItems = computed(() => DECOR_ITEMS.filter(i => i.slot === activeTab.value))
 
 // 是否已拥有该装饰
 function isOwned(item: DecorationItem): boolean {
@@ -53,22 +69,52 @@ function wearLabel(item: DecorationItem): string {
             ✨ {{ props.student.stars }}
           </span>
         </div>
-        <p class="text-sm text-gray-500 mb-5">为 {{ props.student.name }} 的宠物挑选补给</p>
+        <p class="text-sm text-gray-500 mb-4">为 {{ props.student.name }} 的宠物挑选补给</p>
 
-        <!-- 三组商品 -->
-        <div v-for="group in SHOP_GROUPS" :key="group.target" class="mb-5 last:mb-0">
+        <!-- 分类 tab:补给一组 + 装扮一组 -->
+        <div class="flex flex-col gap-1.5 mb-4">
+          <div class="flex gap-1.5">
+            <button
+              v-for="g in SHOP_GROUPS"
+              :key="g.target"
+              @click="activeTab = g.target"
+              class="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
+              :class="activeTab === g.target
+                ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
+            >
+              {{ g.emoji }} {{ g.label }}
+            </button>
+          </div>
+          <div class="flex gap-1.5">
+            <button
+              v-for="g in DECOR_GROUPS"
+              :key="g.slot"
+              @click="activeTab = g.slot"
+              class="flex-1 py-2 rounded-xl text-sm font-bold transition-all"
+              :class="activeTab === g.slot
+                ? 'bg-gradient-to-r from-orange-400 to-pink-500 text-white shadow'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
+            >
+              {{ g.emoji }} {{ g.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 补给商品 -->
+        <div v-if="isSupplyTab && activeSupplyGroup" class="mb-5">
           <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-            <span>{{ group.emoji }}</span> {{ group.label }}
+            <span>{{ activeSupplyGroup.emoji }}</span> {{ activeSupplyGroup.label }}
           </h4>
           <div class="grid grid-cols-2 gap-3">
             <div
-              v-for="item in SHOP_ITEMS.filter(i => i.target === group.target)"
+              v-for="item in supplyItems"
               :key="item.id"
               class="bg-gray-50 rounded-2xl p-3 border border-gray-100"
             >
               <div class="text-3xl mb-2">{{ item.emoji }}</div>
               <div class="font-bold text-sm text-gray-800">{{ item.name }}</div>
-              <div class="text-xs text-green-600 font-medium mb-3">+{{ item.amount }} {{ group.label }}</div>
+              <div class="text-xs text-green-600 font-medium mb-3">+{{ item.amount }} {{ activeSupplyGroup.label }}</div>
               <button
                 @click="emit('buy', item)"
                 :disabled="props.student.stars < item.price"
@@ -83,25 +129,23 @@ function wearLabel(item: DecorationItem): string {
           </div>
         </div>
 
-        <!-- 装扮装饰:背景 + 挂饰 -->
-        <div class="mb-4">
-          <p class="text-xs text-gray-400 leading-relaxed">
+        <!-- 装扮装饰:背景 / 挂饰 / 特效 -->
+        <div v-else-if="activeDecorGroup" class="mb-5">
+          <p class="text-xs text-gray-400 leading-relaxed mb-4">
             🎨 买过一次永久拥有,可随时「戴上 / 卸下」;挂饰最多同时戴 {{ PENDANT_LIMIT }} 个。
           </p>
-        </div>
-        <div v-for="group in DECOR_GROUPS" :key="group.slot" class="mb-5 last:mb-0">
           <h4 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-            <span>{{ group.emoji }}</span> {{ group.label }}
+            <span>{{ activeDecorGroup.emoji }}</span> {{ activeDecorGroup.label }}
           </h4>
           <div class="grid grid-cols-2 gap-3">
             <div
-              v-for="item in DECOR_ITEMS.filter(i => i.slot === group.slot)"
+              v-for="item in decorItems"
               :key="item.id"
               class="bg-gray-50 rounded-2xl p-3 border border-gray-100"
             >
-              <!-- 背景:渐变预览;挂饰:emoji -->
+              <!-- 背景:渐变预览;挂饰/特效:emoji -->
               <div
-                v-if="group.slot === 'bg'"
+                v-if="activeDecorGroup.slot === 'bg'"
                 class="w-10 h-10 rounded-lg mb-2 border border-gray-200"
                 :class="getDecorBgClass(item.id)"
               ></div>
