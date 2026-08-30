@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { DEFAULT_RULES } from './evaluation-rules'
 
 describe('默认评价规则', () => {
-  it('应该有 83 条默认规则', () => {
-    expect(DEFAULT_RULES).toHaveLength(83)
+  it('应该有 45 条默认规则', () => {
+    expect(DEFAULT_RULES).toHaveLength(45)
   })
 
   it('每条规则字段完整', () => {
@@ -22,8 +22,8 @@ describe('默认评价规则', () => {
     expect(cats.size).toBe(4)
   })
 
-  it('同时包含加分和扣分项', () => {
-    expect(DEFAULT_RULES.some(r => r.points > 0)).toBe(true)
-    expect(DEFAULT_RULES.some(r => r.points < 0)).toBe(true)
+  it('全部为正分规则(已去掉扣分)', () => {
+    expect(DEFAULT_RULES.length).toBeGreaterThan(0)
+    expect(DEFAULT_RULES.every(r => r.points > 0)).toBe(true)
   })
 })

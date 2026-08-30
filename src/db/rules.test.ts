@@ -12,25 +12,25 @@ beforeEach(async () => {
 describe('规则', () => {
   it('getRules 返回 83 条默认规则', async () => {
     const rules = await getRules()
-    expect(rules).toHaveLength(83)
+    expect(rules).toHaveLength(45)
   })
 
   it('添加自定义规则 is_custom=1', async () => {
     const r = await addRule('测试规则', 5, '其他')
     expect(r.is_custom).toBe(1)
-    expect(await getRules()).toHaveLength(84)
+    expect(await getRules()).toHaveLength(46)
   })
 
   it('删除自定义规则', async () => {
     const r = await addRule('测试规则', 5, '其他')
     await deleteRule(r.id)
-    expect(await getRules()).toHaveLength(83)
+    expect(await getRules()).toHaveLength(45)
   })
 
   it('不能删除默认规则', async () => {
     const rules = await getRules()
     await deleteRule(rules[0].id)
-    expect(await getRules()).toHaveLength(83)
+    expect(await getRules()).toHaveLength(45)
   })
 
   it('同类别内按 points 降序', async () => {

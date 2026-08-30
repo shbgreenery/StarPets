@@ -1,4 +1,4 @@
-import Dexie, { type Table } from 'dexie'
+import Dexie, { type Table, type Transaction } from 'dexie'
 import { DEFAULT_RULES } from '@/data/evaluation-rules'
 
 // 表行类型
@@ -43,10 +43,20 @@ class PetGardenDB extends Dexie {
         s.last_decay_at ??= Date.now()
       })
     )
+    // v3: 去掉扣分评价后,清理存量负分规则(种子数据已只保留正分)
+    this.version(3).upgrade((tx) => purgeNegativeRules(tx))
   }
 }
 
 export const db = new PetGardenDB()
+
+// 删除所有负分规则(扣分评价已下线,保留正分规则)
+export function purgeNegativeRules(tx: Transaction): Promise<number> {
+  return tx.table<RuleRow, string>('evaluation_rules')
+    .toCollection()
+    .filter((r) => r.points < 0)
+    .delete()
+}
 
 // 清空所有表（测试用）
 export async function clearAll() {

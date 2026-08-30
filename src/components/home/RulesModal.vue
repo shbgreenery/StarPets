@@ -26,16 +26,8 @@ watch(() => props.show, (value) => {
   }
 })
 
-// 分值只允许正值(>=1),输入 0/负数/空 时立即归位为 1
-function clampPoints() {
-  if (typeof newRulePoints.value !== 'number' || !Number.isFinite(newRulePoints.value) || newRulePoints.value < 1) {
-    newRulePoints.value = 1
-  }
-}
-
 function addRule() {
   if (!newRuleName.value.trim()) return
-  clampPoints()
   emit('add', {
     name: newRuleName.value.trim(),
     points: newRulePoints.value,
@@ -67,7 +59,7 @@ function rulesOf(category: string): Rule[] {
           <h4 class="font-bold mb-4 flex items-center gap-2">
             <span>➕</span> 添加自定义规则
           </h4>
-          <div class="flex flex-col sm:flex-row gap-3 mb-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
             <input
               v-model="newRuleName"
               type="text"
@@ -77,14 +69,21 @@ function rulesOf(category: string): Rule[] {
             <select v-model="newRuleCategory" class="w-full sm:w-36 border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors cursor-pointer">
               <option v-for="cat in EVALUATION_CATEGORIES" :key="cat">{{ cat }}</option>
             </select>
-            <input
-              v-model.number="newRulePoints"
-              type="number"
-              min="1"
-              placeholder="分值"
-              @input="clampPoints"
-              class="w-full sm:w-24 border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
-            />
+            <!-- 分值:五颗星星评分,点亮几颗算几分(1-5) -->
+            <div class="flex items-center gap-3">
+              <div class="flex gap-1">
+                <button
+                  v-for="n in 5"
+                  :key="n"
+                  type="button"
+                  @click="newRulePoints = n"
+                  class="text-2xl leading-none transition-transform hover:scale-125"
+                  :class="n <= newRulePoints ? 'opacity-100' : 'opacity-25 grayscale'"
+                  :title="`${n} 分`"
+                >⭐</button>
+              </div>
+              <span class="text-sm font-medium text-gray-500 shrink-0">{{ newRulePoints }} 分</span>
+            </div>
           </div>
           <button
             @click="addRule"

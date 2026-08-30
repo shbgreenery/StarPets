@@ -1,6 +1,7 @@
 import type { Rule } from '@/types'
 
 // 数据来自后端 server/index.js 的 initDefaultRules()
+// 只保留加分规则(去掉扣分评价后,分值均为正数)
 const rawRules: Array<{ name: string; points: number; category: string }> = [
   // 学习类 - 加分
   { name: '作业完成优秀', points: 1, category: '学习' },
@@ -12,14 +13,6 @@ const rawRules: Array<{ name: string; points: number; category: string }> = [
   { name: '近期学习状态进步', points: 1, category: '学习' },
   { name: '被老师点名表扬', points: 1, category: '学习' },
   { name: '单元测验显著进步', points: 2, category: '学习' },
-  // 学习类 - 扣分
-  { name: '不交作业', points: -1, category: '学习' },
-  { name: '未完成作业', points: -2, category: '学习' },
-  { name: '作业潦草', points: -1, category: '学习' },
-  { name: '订正不认真', points: -2, category: '学习' },
-  { name: '抄袭作业', points: -5, category: '学习' },
-  { name: '考试作弊', points: -5, category: '学习' },
-  { name: '学习显著退步', points: -2, category: '学习' },
   // 行为类 - 加分
   { name: '早读认真专注', points: 1, category: '行为' },
   { name: '课前准备充分', points: 1, category: '行为' },
@@ -34,26 +27,6 @@ const rawRules: Array<{ name: string; points: number; category: string }> = [
   { name: '做好人好事被学校提出表扬', points: 3, category: '行为' },
   { name: '积极参与校内外志愿服务', points: 3, category: '行为' },
   { name: '犯错主动认错,积极协商', points: 1, category: '行为' },
-  // 行为类 - 扣分
-  { name: '无故迟到或早退', points: -1, category: '行为' },
-  { name: '未佩戴红领巾,不穿校服', points: -1, category: '行为' },
-  { name: '私自旷课或课间操', points: -3, category: '行为' },
-  { name: '上课讲话、开小差', points: -1, category: '行为' },
-  { name: '扰乱课堂', points: -3, category: '行为' },
-  { name: '课间追逐打闹', points: -3, category: '行为' },
-  { name: '追逐打闹(酿成事故)', points: -3, category: '行为' },
-  { name: '中午自习说话、随意走动', points: -1, category: '行为' },
-  { name: '私自带玩具或零食或危险物品', points: -3, category: '行为' },
-  { name: '排队时说话或小动作不停,被点名', points: -1, category: '行为' },
-  { name: '传播脏话或不良歌谣', points: -5, category: '行为' },
-  { name: '撒谎、隐瞒真实情况', points: -2, category: '行为' },
-  { name: '说脏话,骂人,起绰号', points: -2, category: '行为' },
-  { name: '欺负、推搡、伤害同学', points: -10, category: '行为' },
-  { name: '挑拨离间、拉帮结派', points: -3, category: '行为' },
-  { name: '不尊重同学、孤立他人', points: -3, category: '行为' },
-  { name: '为私欲包庇犯错者', points: -3, category: '行为' },
-  { name: '恶意举报、诬陷他人', points: -3, category: '行为' },
-  { name: '破坏校园设施', points: -5, category: '行为' },
   // 健康类 - 加分
   { name: '认真完成包干区值日', points: 1, category: '健康' },
   { name: '主动为班级擦黑板', points: 1, category: '健康' },
@@ -62,14 +35,6 @@ const rawRules: Array<{ name: string; points: number; category: string }> = [
   { name: '主动倒垃圾并套垃圾袋', points: 2, category: '健康' },
   { name: '座位整洁无涂画,桌椅干净', points: 1, category: '健康' },
   { name: '座位周围无垃圾', points: 1, category: '健康' },
-  // 健康类 - 扣分
-  { name: '打扫包干区时间玩耍,不认真', points: -2, category: '健康' },
-  { name: '个人座位卫生不合格', points: -1, category: '健康' },
-  { name: '校园内乱扔垃圾', points: -1, category: '健康' },
-  { name: '桌洞脏乱、物品杂乱', points: -1, category: '健康' },
-  { name: '破坏卫生、乱涂乱画', points: -2, category: '健康' },
-  { name: '浪费粮食', points: -2, category: '健康' },
-  { name: '破坏班级绿植、把玩绿植', points: -3, category: '健康' },
   // 其他类 - 加分
   { name: '主动整理图书、摆放整齐', points: 2, category: '其他' },
   { name: '主动帮同学更换桌椅', points: 2, category: '其他' },
@@ -87,12 +52,6 @@ const rawRules: Array<{ name: string; points: number; category: string }> = [
   { name: '联欢会或文艺汇演积极参与', points: 2, category: '其他' },
   { name: '为班级争得荣誉', points: 5, category: '其他' },
   { name: '小组全周无违纪、全员交作业', points: 2, category: '其他' },
-  // 其他类 - 扣分
-  { name: '损坏公物、乱刻乱画', points: -1, category: '其他' },
-  { name: '浪费水电、屡教不改', points: -1, category: '其他' },
-  { name: '故意玩弄损坏公共电器', points: -3, category: '其他' },
-  { name: '故意损坏卫生工具', points: -2, category: '其他' },
-  { name: '扣分严重/打架/作弊/严重违纪', points: -8, category: '其他' },
 ]
 
 export const DEFAULT_RULES: Rule[] = rawRules.map((r, i) => ({
