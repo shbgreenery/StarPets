@@ -1,9 +1,11 @@
 # 班级宠物园 (ClassPetGarden) 🐾
 
+> **📌 项目来源**：本项目改编自 [prompteric/class-pet-garden](https://github.com/prompteric/class-pet-garden)。原项目为 Vue3 + Node.js + SQLite 前后端分离架构；本项目已改造为**纯前端应用**（IndexedDB + Dexie），无需后端，可直接部署到 GitHub Pages。
+
 > 游戏化班级管理工具，让积分评价变得有趣高效
 
 ![版本](https://img.shields.io/badge/version-1.0.0-blue)
-![技术栈](https://img.shields.io/badge/技术栈-Vue3%20+%20Node.js%20+%20SQLite-green)
+![技术栈](https://img.shields.io/badge/技术栈-Vue3%20+%20IndexedDB%20(Dexie)-green)
 
 ## ✨ 项目简介
 
@@ -16,7 +18,7 @@
 - 🐾 **宠物养成** - 24种可爱宠物，8级成长体系，每级形态变化
 - ⭐ **积分评价** - 83条默认规则，支持自定义，覆盖学习/行为/健康/其他
 - 📊 **数据可视化** - 排行榜、成长进度、评价统计
-- 💾 **数据安全** - SQLite数据库，支持备份/恢复/导出
+- 💾 **数据本地化** - IndexedDB 浏览器本地存储，无需服务器
 - 📱 **响应式设计** - 适配电脑、平板、手机
 
 ---
@@ -24,38 +26,35 @@
 ## 🚀 快速开始
 
 ### 在线演示
-访问：https://8.147.56.12/pet-garden/
+访问：https://shbgreenery.github.io/StarPets/
 
 ### 本地开发
 
 ```bash
 # 克隆项目
-git clone https://github.com/gaotong132/class-pet-garden.git
-cd class-pet-garden
+git clone https://github.com/shbgreenery/StarPets.git
+cd StarPets
 
 # 安装依赖
 npm install
 
-# 启动开发服务器（同时启动前端和后端）
-npm start
-
-# 或分别启动
-npm run dev      # 前端
-npm run server   # 后端
+# 启动开发服务器（纯前端，无需后端）
+npm run dev
 ```
 
-### 生产部署
+浏览器访问 http://localhost:3001/StarPets/
+
+### 生产构建与部署
+
+本项目为**纯前端应用**，数据存储在浏览器 IndexedDB 中，无需后端服务器。
 
 ```bash
-# 构建前端
-npm run build
-
-# 启动后端服务
-npm run server
-
-# 或使用启动脚本
-bash start-server.sh
+# 本地构建
+npm run build       # 产出 dist/，含 vue-tsc 类型检查
+npm run preview     # 本地预览构建产物
 ```
+
+**部署到 GitHub Pages**：push 到 `main`/`master` 分支后，GitHub Actions 会自动构建并发布（见 `.github/workflows/deploy.yml`）。首次部署需在仓库 Settings → Pages 中将 Source 设为 **GitHub Actions**。
 
 ---
 
@@ -87,8 +86,6 @@ bash start-server.sh
 | 创建班级 | 输入班级名称即可创建 |
 | 切换班级 | 顶部下拉菜单快速切换 |
 | 删除班级 | 支持删除班级及所有数据 |
-| 数据备份 | 导出JSON备份文件 |
-| 数据恢复 | 导入JSON恢复数据 |
 
 ### 二、学生管理
 
@@ -173,9 +170,8 @@ bash start-server.sh
 
 ### 六、数据管理
 
-- 💾 导出备份：导出完整班级数据为JSON
-- 📥 导入恢复：从JSON文件恢复数据
-- 🔄 自动保存：所有操作实时保存到数据库
+- 🔄 自动保存：所有操作实时保存到浏览器 IndexedDB
+- 💡 数据存于本地浏览器，换设备或清理浏览器数据会丢失（面向单机使用场景）
 
 ---
 
@@ -184,26 +180,19 @@ bash start-server.sh
 ### 系统架构
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                      班级宠物园                          │
-├─────────────────────────────────────────────────────────┤
-│                                                         │
-│   ┌─────────────────┐         ┌─────────────────┐      │
-│   │   Vue 3 前端     │   API   │  Node.js 后端   │      │
-│   │                 │ ←─────→ │                 │      │
-│   │  • Composition  │   REST  │  • Express.js   │      │
-│   │  • TypeScript   │   JSON  │  • better-sqlite│      │
-│   │  • Tailwind CSS │         │  • CORS         │      │
-│   │  • Vue Router   │         │                 │      │
-│   └─────────────────┘         └────────┬────────┘      │
-│                                        │                │
-│                                        ▼                │
-│                                ┌─────────────────┐      │
-│                                │     SQLite      │      │
-│                                │  pet-garden.db  │      │
-│                                └─────────────────┘      │
-│                                                         │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│                Vue 3 前端                   │
+│                                             │
+│   页面/组件  ←→  组合式函数  ←→  数据访问层  │
+│                                  (src/db)   │
+│                                    │        │
+│                                    ▼        │
+│                               Dexie         │
+│                                    │        │
+│                                    ▼        │
+│                             IndexedDB       │
+│                            (浏览器内嵌)      │
+└─────────────────────────────────────────────┘
 ```
 
 ### 技术栈
@@ -213,107 +202,39 @@ bash start-server.sh
 | 前端 | Vue 3 + TypeScript | 渐进式框架，类型安全 |
 | 构建 | Vite | 快速构建工具 |
 | 样式 | Tailwind CSS | 原子化CSS框架 |
-| 后端 | Node.js + Express | 轻量级Web框架 |
-| 数据库 | SQLite | 嵌入式关系数据库 |
-| 驱动 | better-sqlite3 | 同步SQLite驱动 |
+| 数据层 | Dexie | IndexedDB 封装库 |
+| 存储 | IndexedDB | 浏览器内嵌数据库 |
 
-### API 列表
+### 数据访问层
 
-```
-# 班级
-GET    /api/classes                 # 获取班级列表
-POST   /api/classes                 # 创建班级
-PUT    /api/classes/:id             # 更新班级
-DELETE /api/classes/:id             # 删除班级
+数据访问逻辑集中在 `src/db/` 目录，通过 Dexie 封装 IndexedDB：
 
-# 学生
-GET    /api/classes/:id/students    # 获取学生列表
-POST   /api/students                # 添加学生
-PUT    /api/students/:id            # 更新学生
-DELETE /api/students/:id            # 删除学生
-POST   /api/students/import         # 批量导入
-PUT    /api/students/:id/pet        # 更换宠物
+| 模块 | 职责 |
+|------|------|
+| `src/db/index.ts` | Dexie 实例、7 张表 schema、`initDb` 初始化 |
+| `src/db/classes.ts` | 班级 + 学生 CRUD |
+| `src/db/evaluations.ts` | 评价记录 + 加分事务（积分/等级/徽章联动） |
+| `src/db/rules.ts` | 评价规则 + 设置 |
+| `src/db/auth.ts` | 本地注册/登录 |
 
-# 评价规则
-GET    /api/rules                   # 获取规则列表
-POST   /api/rules                   # 添加规则
-DELETE /api/rules/:id               # 删除规则
+### 数据表结构（IndexedDB / Dexie）
 
-# 评价记录
-POST   /api/evaluations             # 添加评价
-GET    /api/evaluations             # 获取记录
-DELETE /api/evaluations/:id         # 删除记录
-DELETE /api/evaluations/latest      # 撤回最近
-
-# 排行榜
-GET    /api/classes/:id/ranking     # 获取排行榜
-
-# 数据管理
-GET    /api/backup                  # 导出备份
-POST   /api/restore                 # 导入恢复
-GET    /api/health                  # 健康检查
-```
-
-### 数据库表结构
-
-```sql
--- 班级表
-CREATE TABLE classes (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  created_at INTEGER,
-  updated_at INTEGER
-);
-
--- 学生表
-CREATE TABLE students (
-  id TEXT PRIMARY KEY,
-  class_id TEXT NOT NULL,
-  name TEXT NOT NULL,
-  student_no TEXT,
-  total_points INTEGER DEFAULT 0,
-  pet_type TEXT,
-  pet_level INTEGER DEFAULT 1,
-  pet_exp INTEGER DEFAULT 0,
-  created_at INTEGER
-);
-
--- 徽章表（毕业记录）
-CREATE TABLE badges (
-  id TEXT PRIMARY KEY,
-  student_id TEXT NOT NULL,
-  pet_type TEXT NOT NULL,
-  earned_at INTEGER
-);
-
--- 评价规则表
-CREATE TABLE evaluation_rules (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  points INTEGER NOT NULL,
-  category TEXT NOT NULL,
-  is_custom INTEGER DEFAULT 0,
-  created_at INTEGER
-);
-
--- 评价记录表
-CREATE TABLE evaluation_records (
-  id TEXT PRIMARY KEY,
-  class_id TEXT NOT NULL,
-  student_id TEXT NOT NULL,
-  points INTEGER NOT NULL,
-  reason TEXT NOT NULL,
-  category TEXT NOT NULL,
-  timestamp INTEGER
-);
-```
+| 表 | 主键 | 索引字段 | 说明 |
+|----|------|---------|------|
+| classes | id | name, created_at | 班级 |
+| students | id | class_id, name, student_no, total_points | 学生 |
+| badges | id | student_id, pet_type | 毕业徽章 |
+| evaluation_rules | id | category, is_custom | 评价规则 |
+| evaluation_records | id | class_id, student_id, timestamp | 评价记录 |
+| settings | key | — | 设置 |
+| users | id | username | 用户 |
 
 ---
 
 ## 📁 项目结构
 
 ```
-class-pet-garden/
+StarPets/  (class-pet-garden)
 ├── src/                          # 前端源码
 │   ├── components/               # 组件
 │   │   ├── PetImage.vue         # 宠物图片组件
@@ -322,24 +243,25 @@ class-pet-garden/
 │   ├── pages/                    # 页面
 │   │   ├── Home.vue             # 主页面
 │   │   └── PetPreview.vue       # 宠物图鉴
+│   ├── db/                       # 数据访问层（Dexie）
+│   │   ├── index.ts             # schema + initDb
+│   │   ├── classes.ts           # 班级/学生
+│   │   ├── evaluations.ts       # 评价
+│   │   ├── rules.ts             # 规则/设置
+│   │   └── auth.ts              # 认证
 │   ├── data/                     # 数据配置
 │   │   ├── pets.ts              # 宠物配置
 │   │   └── evaluation-rules.ts  # 默认评价规则
 │   ├── composables/              # 组合式函数
 │   │   └── useImageLoader.ts    # 图片加载管理
 │   ├── router/                   # 路由
-│   ├── stores/                   # Pinia状态
 │   ├── utils/                    # 工具函数
 │   ├── App.vue                   # 根组件
 │   └── main.ts                   # 入口
-├── server/                       # 后端
-│   ├── index.js                  # Express服务
-│   └── pet-garden.db             # SQLite数据库
 ├── public/                       # 静态资源
 │   └── pets/                     # 宠物图片
+├── .github/workflows/deploy.yml  # GitHub Pages 部署
 ├── dist/                         # 构建输出
-├── start-server.sh               # 启动脚本
-├── health-check.sh               # 健康检查
 └── README.md                     # 说明文档
 ```
 
@@ -453,9 +375,9 @@ class-pet-garden/
 - [x] 宠物系统（24种，8级）
 - [x] 评价系统（83条规则）
 - [x] 排行榜
-- [x] 数据备份/恢复
 - [x] 宠物图鉴
 - [x] 批量评价
+- [x] 移除后端、IndexedDB 本地化（纯前端）
 
 ### 进行中 🔄
 - [ ] 商店系统
