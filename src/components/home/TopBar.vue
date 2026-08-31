@@ -12,7 +12,6 @@ const emit = defineEmits<{
   (e: 'show-rules'): void
   (e: 'show-game'): void
   (e: 'show-leaderboard'): void
-  (e: 'show-achievements'): void
 }>()
 
 // 下拉菜单展开状态
@@ -57,7 +56,6 @@ const showMoreMenu = ref(false)
             <button @click="emit('show-rules'); showMoreMenu = false" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">⚙️ 规则</button>
             <hr class="my-1.5 border-gray-100">
             <button @click="emit('show-leaderboard'); showMoreMenu = false" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">🏆 光荣榜</button>
-            <button @click="emit('show-achievements'); showMoreMenu = false" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">🎖️ 成就</button>
             <button @click="emit('show-game'); showMoreMenu = false" class="w-full text-left px-3 py-2 text-sm hover:bg-gradient-to-r hover:from-orange-50 hover:to-pink-50 transition-colors">🎮 游戏</button>
           </div>
         </Transition>

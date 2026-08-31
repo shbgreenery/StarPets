@@ -15,11 +15,6 @@ export interface BadgeRow { id: string; student_id: string; pet_type: string; ea
 export interface RuleRow { id: string; name: string; points: number; category: string; is_custom: number; created_at: number }
 export interface EvaluationRecordRow { id: string; student_id: string; points: number; reason: string; category: string; timestamp: number }
 export interface SettingRow { key: string; value: unknown }
-export interface TaskRow {
-  id: string; student_id: string; name: string;
-  current_streak: number; max_streak: number; total_days: number;
-  last_completed_date: string; achievements: string; created_at: number
-}
 
 class PetGardenDB extends Dexie {
   students!: Table<StudentRow, string>
@@ -27,7 +22,6 @@ class PetGardenDB extends Dexie {
   evaluation_rules!: Table<RuleRow, string>
   evaluation_records!: Table<EvaluationRecordRow, string>
   settings!: Table<SettingRow, string>
-  tasks!: Table<TaskRow, string>
 
   constructor() {
     super('pet-garden')
@@ -76,10 +70,8 @@ class PetGardenDB extends Dexie {
         s.deco_fx ??= null
       })
     )
-    // v7: 任务成就系统
-    this.version(7).stores({
-      tasks: 'id, student_id, name, created_at'
-    })
+    // v7: 占位版本号（任务成就系统已移除，保留版本号避免存量数据库降级报错）
+    this.version(7)
   }
 }
 

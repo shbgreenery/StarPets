@@ -46,7 +46,7 @@ export const PET_LINES: ReactionLine[] = [
   { text: '今天有没有好好表现呀？', emoji: '😊' },
   { text: '我有点饿了，喂我吃点东西吧～', emoji: '🍖', condition: 'hunger' },
   { text: '陪我玩一会儿嘛！', emoji: '🧸', condition: 'happiness' },
-  { text: '今天我们一起做任务吧！', emoji: '📋' },
+  { text: '今天我们一起玩吧！', emoji: '🎈' },
   { text: '你的表现真棒，继续加油哦！', emoji: '⭐' },
   { text: '明天也要记得来看我哦！', emoji: '💕' },
   { text: '我好开心呀！', emoji: '🎉' },

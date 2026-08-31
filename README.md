@@ -23,7 +23,6 @@
 - 📈 **喂养成长** - 成长值由喂养驱动，不喂就不长；宠物会休眠，照料后恢复
 - 🖱️ **宠物互动** - 点击宠物弹跳+气泡台词，26种宠物各有专属叫声，20条随机互动台词
 - 🏆 **光荣榜** - 日/周/月榜，多孩家庭自动排行（🥇🥈🥉）
-- 🎖️ **成就系统** - 基于评价自动检测，12个成就，手动领取星星奖励
 - 🎮 **你说我猜** - 亲子互动游戏，妈妈看图描述孩子猜，猜对得星星
 - 📋 **记录与图鉴** - 评价记录分页、宠物图鉴
 - 💾 **数据本地化** - IndexedDB 浏览器本地存储，无需服务器
@@ -200,17 +199,7 @@ pnpm test:run      # vitest 单元测试
 | 2 个 | 仅 🥇 第一名 |
 | ≥3 个 | 🥇🥈🥉 前三名 |
 
-### 七、成就系统
-
-评价后自动检测，基于评价记录触发成就，手动领取星星奖励：
-
-| 类型 | 里程碑 | 奖励 |
-|:----|:------|:----:|
-| 📊 累计评价 | 10 / 50 / 100 / 200 次 | ✨2~15 |
-| ⭐ 累计星星 | 50 / 200 / 500 / 1000 星 | ✨2~15 |
-| 🔥 连续评价 | 3 / 7 / 15 / 21 天 | ✨2~20 |
-
-### 八、你说我猜亲子游戏
+### 七、你说我猜亲子游戏
 
 从「更多」菜单进入，妈妈和孩子一起玩：
 
@@ -220,7 +209,7 @@ pnpm test:run      # vitest 单元测试
 4. 每轮 5 题，顶部 ✓/✕ 实时显示进度
 5. 结束后显示成绩和题目回顾
 
-### 九、图鉴与记录
+### 八、图鉴与记录
 
 - **宠物图鉴**：26 种宠物的 1-8 级形态预览，普通/神兽分类筛选
 - **评价记录**：所有评价按时间倒序分页展示
@@ -264,11 +253,10 @@ pnpm test:run      # vitest 单元测试
 
 | 模块 | 职责 |
 |------|------|
-| `src/db/index.ts` | Dexie 实例、6 张表 schema（v1~v7 升级）、`initDb` 初始化 |
+| `src/db/index.ts` | Dexie 实例、5 张表 schema（v1~v6 升级）、`initDb` 初始化 |
 | `src/db/classes.ts` | 宝贝 CRUD、指标衰减、成长值（喂养驱动）、商城购买、毕业徽章 |
 | `src/db/evaluations.ts` | 评价记录 + 星星联动 |
 | `src/db/rules.ts` | 评价规则 + 设置 |
-| `src/db/tasks.ts` | 任务成就系统（连续天数、成就检测） |
 
 ### 数据表结构（IndexedDB / Dexie）
 
@@ -279,7 +267,6 @@ pnpm test:run      # vitest 单元测试
 | evaluation_rules | id | category, is_custom | 评价规则（正分） |
 | evaluation_records | id | student_id, timestamp | 评价记录 |
 | settings | key | — | 设置 |
-| tasks | id | student_id, name, created_at | 任务成就 |
 
 ---
 
@@ -297,10 +284,7 @@ StarPets/  (class-pet-garden)
 │   │       ├── StudentDetailPanel.vue # 宝贝详情（宠物状态常驻 + 评价/商城 tab）
 │   │       ├── ShopContent.vue  # 商城内嵌内容（补给/装扮分类 tab）
 │   │       ├── Leaderboard.vue  # 光荣榜（日/周/月榜）
-│   │       ├── AchievementList.vue # 成就列表（进度/领取）
-│   │       ├── AchievementModal.vue # 成就达成弹窗
 │   │       ├── GuessGame.vue    # 你说我猜亲子游戏
-│   │       ├── TaskManager.vue  # 习惯任务管理
 │   │       ├── RulesModal.vue   # 规则管理（星星评分）
 │   │       ├── RecordsModal.vue # 评价记录
 │   │       ├── SelectPetModal.vue # 领养宠物
@@ -310,17 +294,15 @@ StarPets/  (class-pet-garden)
 │   │   ├── Home.vue             # 主页面
 │   │   └── PetPreview.vue       # 宠物图鉴
 │   ├── db/                       # 数据访问层（Dexie）
-│   │   ├── index.ts             # schema（v1~v7）+ initDb
+│   │   ├── index.ts             # schema（v1~v6）+ initDb
 │   │   ├── classes.ts           # 宝贝/指标/成长值/商城
 │   │   ├── evaluations.ts       # 评价/星星
-│   │   ├── rules.ts             # 规则/设置
-│   │   └── tasks.ts             # 任务成就
+│   │   └── rules.ts             # 规则/设置
 │   ├── data/                     # 数据配置
 │   │   ├── pets.ts              # 宠物配置
 │   │   ├── decorations.ts       # 装扮配置（背景/挂饰/特效 + 特效动画）
 │   │   ├── evaluation-rules.ts  # 默认评价规则（45条正分）
 │   │   ├── shop.ts              # 商城商品/指标展示
-│   │   ├── achievements.ts      # 成就配置（12个成就）
 │   │   ├── guess-game.ts        # 你说我猜题库（80题）
 │   │   └── categories.ts        # 评价分类
 │   ├── composables/              # 组合式函数
@@ -351,7 +333,6 @@ StarPets/  (class-pet-garden)
 - [x] 评价只给星（去掉扣分），自定义规则 1-5 星评分
 - [x] 宠物互动（点击弹跳+气泡台词，叫声/互动/小知识）
 - [x] 光荣榜（日/周/月榜，多孩自动排行）
-- [x] 成就系统（12个成就，基于评价自动检测，手动领取奖励）
 - [x] 你说我猜亲子游戏（妈妈描述孩子猜，80道题，猜对得星）
 - [x] 去掉班级/登录、去掉批量评价/撤回、移除排行
 - [x] 记录、规则管理、宠物图鉴

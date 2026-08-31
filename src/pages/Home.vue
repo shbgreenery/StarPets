@@ -14,10 +14,7 @@ import RulesModal from '@/components/home/RulesModal.vue'
 import StudentDetailPanel from '@/components/home/StudentDetailPanel.vue'
 import Leaderboard from '@/components/home/Leaderboard.vue'
 import GuessGame from '@/components/home/GuessGame.vue'
-import AchievementModal from '@/components/home/AchievementModal.vue'
-import AchievementList from '@/components/home/AchievementList.vue'
 import { useToast } from '@/composables/useToast'
-import { useAchievements } from '@/composables/useAchievements'
 import { getStudents, addStudent, updateStudentPet, updateStudentPetName, deleteStudent, buyShopItem, buyDecoration, wearDecoration, takeOffDecoration } from '@/db/classes'
 import { getRules, addRule, deleteRule } from '@/db/rules'
 import { addEvaluation, getStudentEvaluations, getEvaluations } from '@/db/evaluations'
@@ -27,11 +24,6 @@ import type { EvaluationRecord, Rule, Student } from '@/types'
 
 // Toast 提示
 const toast = useToast()
-const { checkAchievements } = useAchievements()
-
-// 成就弹窗
-const showAchievementModal = ref(false)
-const achievementInfo = ref<{ studentName: string; taskName: string; days: number; starBonus: number } | null>(null)
 
 // State
 const students = ref<Student[]>([])
@@ -44,7 +36,6 @@ const showRecordsModal = ref(false)
 const showRulesModal = ref(false)
 const showGameModal = ref(false)
 const showLeaderboardModal = ref(false)
-const showAchievementListModal = ref(false)
 
 // 选择宠物目标
 const selectedStudent = ref<Student | null>(null)
@@ -133,21 +124,12 @@ async function loadRules() {
   rules.value = await getRules()
 }
 
-// 任务系统
 function openGame() {
   showGameModal.value = true
 }
 
 function openLeaderboard() {
   showLeaderboardModal.value = true
-}
-
-function openAchievements() {
-  showAchievementListModal.value = true
-}
-
-function handleAchievementClaim() {
-  loadStudents()
 }
 
 async function handleGameEarnStars(count: number, studentId: string) {
@@ -164,9 +146,6 @@ async function handleGameEarnStars(count: number, studentId: string) {
     console.error('加星失败:', error)
   }
 }
-
-// ---- 成就检测 ----
-// 评价后检测成就（已提取到 useAchievements composable）
 
 async function handleAddStudent(name: string) {
   try {
@@ -410,13 +389,6 @@ async function detailQuickAdd(rule: Rule) {
 
     await loadStudents()
 
-    // 检测成就
-    const result = await checkAchievements(student.name)
-    if (result.achieved && result.info) {
-      achievementInfo.value = result.info
-      showAchievementModal.value = true
-    }
-
     // 关闭详情面板
     closeDetailPanel()
   } catch (error) {
@@ -549,7 +521,6 @@ onMounted(async () => {
       @show-rules="showRulesModal = true"
       @show-game="openGame"
       @show-leaderboard="openLeaderboard"
-      @show-achievements="openAchievements"
     />
 
     <!-- Main Content -->
@@ -654,20 +625,6 @@ onMounted(async () => {
         </div>
       </div>
     </Transition>
-
-    <!-- 成就弹窗 -->
-    <AchievementModal
-      :show="showAchievementModal"
-      :info="achievementInfo"
-      @close="showAchievementModal = false"
-    />
-
-    <!-- 成就列表 -->
-    <AchievementList
-      :show="showAchievementListModal"
-      @close="showAchievementListModal = false"
-      @claim="handleAchievementClaim"
-    />
 
     <!-- 学生详情面板 -->
     <StudentDetailPanel

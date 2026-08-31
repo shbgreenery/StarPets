@@ -39,17 +39,3 @@ export interface PaginatedResponse<T> {
   pageSize: number
   totalPages: number
 }
-
-// 任务成就
-export interface Task {
-  id: string
-  student_id: string
-  name: string
-  current_streak: number
-  max_streak: number
-  total_days: number
-  last_completed_date: string
-  achievements: string
-  student_name?: string
-  created_at: number
-}

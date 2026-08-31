@@ -49,11 +49,6 @@ export async function getEvaluations(page: number, pageSize: number) {
   return { records, total, page, pageSize, totalPages: Math.ceil(total / pageSize) }
 }
 
-// 获取所有评价记录（用于成就检测等场景）
-export async function getAllEvaluations() {
-  return db.evaluation_records.toArray()
-}
-
 // 获取指定时间之后的评价记录（用于光荣榜等场景）
 export async function getEvaluationsSince(timestamp: number) {
   return db.evaluation_records.where('timestamp').aboveOrEqual(timestamp).toArray()
