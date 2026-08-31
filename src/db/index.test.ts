@@ -9,10 +9,10 @@ beforeEach(async () => {
 })
 
 describe('db schema 与初始化', () => {
-  it('有 5 张表', () => {
+  it('有 6 张表', () => {
     expect(db.tables.map(t => t.name).sort()).toEqual([
       'badges', 'evaluation_records', 'evaluation_rules',
-      'settings', 'students'
+      'settings', 'students', 'tasks'
     ])
   })
 
