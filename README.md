@@ -4,7 +4,7 @@
 
 > 家庭亲子激励工具，家长通过评价孩子表现给予星星，喂养宠物养成升级
 
-![版本](https://img.shields.io/badge/version-1.1.0-blue)
+![版本](https://img.shields.io/badge/version-1.1.1-blue)
 ![技术栈](https://img.shields.io/badge/技术栈-Vue3%20+%20IndexedDB%20(Dexie)-green)
 
 ## ✨ 项目简介
@@ -172,7 +172,7 @@ pnpm test:run      # vitest 单元测试
 
 #### 自定义规则
 - 输入名称 + 选择分类 + **五颗星星评分**（点亮几颗算几分，1-5 分）
-- 删除不需要的自定义规则（默认规则不可删除）
+- 所有规则都可以删除（包括默认规则）
 
 ### 四、成长值规则
 

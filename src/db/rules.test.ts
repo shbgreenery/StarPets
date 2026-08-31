@@ -27,10 +27,11 @@ describe('规则', () => {
     expect(await getRules()).toHaveLength(45)
   })
 
-  it('不能删除默认规则', async () => {
+  it('删除默认规则', async () => {
     const rules = await getRules()
+    const count = rules.length
     await deleteRule(rules[0].id)
-    expect(await getRules()).toHaveLength(45)
+    expect(await getRules()).toHaveLength(count - 1)
   })
 
   it('同类别内按 points 降序', async () => {

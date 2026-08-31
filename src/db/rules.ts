@@ -18,10 +18,7 @@ export async function addRule(name: string, points: number, category: string): P
 }
 
 export async function deleteRule(id: string): Promise<void> {
-  const rule = await db.evaluation_rules.get(id)
-  if (rule && rule.is_custom === 1) {
-    await db.evaluation_rules.delete(id)
-  }
+  await db.evaluation_rules.delete(id)
 }
 
 export async function getSettings(key: string): Promise<unknown> {

@@ -64,20 +64,20 @@ function rulesOf(category: string): Rule[] {
               v-model="newRuleName"
               type="text"
               placeholder="规则名称"
-              class="flex-1 min-w-0 border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
+              class="w-full sm:flex-1 border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors"
             />
             <select v-model="newRuleCategory" class="w-full sm:w-36 border-2 border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-orange-400 transition-colors cursor-pointer">
               <option v-for="cat in EVALUATION_CATEGORIES" :key="cat">{{ cat }}</option>
             </select>
             <!-- 分值:五颗星星评分,点亮几颗算几分(1-5) -->
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
               <div class="flex gap-1">
                 <button
                   v-for="n in 5"
                   :key="n"
                   type="button"
                   @click="newRulePoints = n"
-                  class="text-2xl leading-none transition-transform hover:scale-125"
+                  class="text-xl sm:text-2xl leading-none transition-transform hover:scale-125"
                   :class="n <= newRulePoints ? 'opacity-100' : 'opacity-25 grayscale'"
                   :title="`${n} 分`"
                 >⭐</button>
@@ -101,26 +101,25 @@ function rulesOf(category: string): Rule[] {
                 <span>{{ getCategoryIcon(cat) }}</span>
                 {{ cat }}
               </h4>
-              <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
                 <div
                   v-for="rule in rulesOf(cat)"
                   :key="rule.id"
-                  class="flex items-center justify-between p-4 rounded-xl border-2"
+                  class="flex items-center justify-between p-3 sm:p-4 rounded-xl border-2"
                   :class="rule.points > 0 ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'"
                 >
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 min-w-0 flex-1">
                     <span
-                      class="font-bold text-lg"
+                      class="font-bold text-base sm:text-lg shrink-0"
                       :class="rule.points > 0 ? 'text-green-500' : 'text-red-500'"
                     >
                       {{ rule.points > 0 ? '+' : '' }}{{ rule.points }}
                     </span>
-                    <span class="text-sm font-medium">{{ rule.name }}</span>
+                    <span class="text-xs sm:text-sm font-medium truncate">{{ rule.name }}</span>
                   </div>
                   <button
-                    v-if="rule.is_custom"
                     @click="emit('delete', rule.id)"
-                    class="text-red-400 hover:text-red-600 text-sm font-medium transition-colors"
+                    class="text-red-400 hover:text-red-600 text-xs sm:text-sm font-medium transition-colors shrink-0 ml-1"
                   >
                     删除
                   </button>
