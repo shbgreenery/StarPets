@@ -368,8 +368,11 @@ async function detailQuickAdd(rule: Rule) {
 
     await loadStudents()
 
-    // 关闭详情面板
-    closeDetailPanel()
+    // 评价后保持面板打开,同步刷新面板内的星星数与最近记录,方便连续评价
+    if (detailStudent.value) {
+      detailStudent.value = students.value.find(s => s.id === detailStudent.value?.id) || null
+    }
+    await loadStudentRecords(student.id)
   } catch (error) {
     console.error('评价失败:', error)
     toast.error('评价失败，请重试')
