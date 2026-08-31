@@ -30,13 +30,11 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Install dependencies
         run: |
-             rm -f pnpm-lock.yaml                     # 删除旧锁文件
              pnpm config set registry https://registry.npmjs.org/
-             pnpm install                             # 重新生成锁文件并安装
+             pnpm install
       - name: Build
         run: pnpm run build
 
