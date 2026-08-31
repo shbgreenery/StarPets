@@ -13,7 +13,6 @@ import RecordsModal from '@/components/home/RecordsModal.vue'
 import RulesModal from '@/components/home/RulesModal.vue'
 import StudentDetailPanel from '@/components/home/StudentDetailPanel.vue'
 import Leaderboard from '@/components/home/Leaderboard.vue'
-import GuessGame from '@/components/home/GuessGame.vue'
 import { useToast } from '@/composables/useToast'
 import { getStudents, addStudent, updateStudentPet, updateStudentPetName, deleteStudent, buyShopItem, buyDecoration, wearDecoration, takeOffDecoration } from '@/db/classes'
 import { getRules, addRule, deleteRule } from '@/db/rules'
@@ -34,7 +33,6 @@ const showStudentModal = ref(false)
 const showPetModal = ref(false)
 const showRecordsModal = ref(false)
 const showRulesModal = ref(false)
-const showGameModal = ref(false)
 const showLeaderboardModal = ref(false)
 
 // 选择宠物目标
@@ -124,27 +122,8 @@ async function loadRules() {
   rules.value = await getRules()
 }
 
-function openGame() {
-  showGameModal.value = true
-}
-
 function openLeaderboard() {
   showLeaderboardModal.value = true
-}
-
-async function handleGameEarnStars(count: number, studentId: string) {
-  try {
-    await addEvaluation({
-      studentId,
-      points: count,
-      reason: '你说我猜游戏',
-      category: '其他'
-    })
-    toast.success(`游戏获得 ✨${count} 星！`)
-    await loadStudents()
-  } catch (error) {
-    console.error('加星失败:', error)
-  }
 }
 
 async function handleAddStudent(name: string) {
@@ -519,7 +498,6 @@ onMounted(async () => {
       @delete-students="startDeleteMode"
       @show-records="openRecordsModal"
       @show-rules="showRulesModal = true"
-      @show-game="openGame"
       @show-leaderboard="openLeaderboard"
     />
 
@@ -598,13 +576,6 @@ onMounted(async () => {
       @close="showRulesModal = false"
       @add="handleAddRule"
       @delete="handleDeleteRule"
-    />
-
-    <!-- 你说我猜游戏 -->
-    <GuessGame
-      :show="showGameModal"
-      @close="showGameModal = false"
-      @earn-stars="handleGameEarnStars"
     />
 
     <!-- 光荣榜弹窗 -->
