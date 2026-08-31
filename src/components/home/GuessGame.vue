@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { getItemsByCategory, getRandomItems, CATEGORIES, type GuessItem } from '@/data/guess-game'
 import { useToast } from '@/composables/useToast'
-import { db } from '@/db/index'
+import { getStudents } from '@/db/classes'
 import type { Student } from '@/types'
 
 const props = defineProps<{
@@ -116,7 +116,7 @@ function closeGame() {
 
 // 加载学生列表
 async function loadStudents() {
-  students.value = await db.students.toArray()
+  students.value = await getStudents()
   if (students.value.length > 0 && !selectedStudentId.value) {
     selectedStudentId.value = students.value[0].id
   }

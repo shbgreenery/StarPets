@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { db } from '@/db/index'
+import { getStudents, addStudentStars } from '@/db/classes'
+import { getAllEvaluations } from '@/db/evaluations'
+import { getSettings, updateSettings } from '@/db/rules'
 import { ACHIEVEMENT_GROUPS, ACHIEVED_KEY, CLAIMED_KEY, type AchievementDef } from '@/data/achievements'
 import { useToast } from '@/composables/useToast'
 import type { Student } from '@/types'
@@ -32,7 +34,7 @@ const claimedSet = ref<Set<string>>(new Set())
 // 加载数据
 async function loadData() {
   // 加载学生列表
-  students.value = await db.students.toArray()
+  students.value = await getStudents()
 
   // 默认选中第一个学生
   if (!selectedStudentId.value && students.value.length > 0) {
@@ -40,7 +42,7 @@ async function loadData() {
   }
 
   // 按学生筛选评价记录
-  let records = await db.evaluation_records.toArray()
+  let records = await getAllEvaluations()
   if (selectedStudentId.value) {
     records = records.filter(r => r.student_id === selectedStudentId.value)
   }
@@ -55,12 +57,12 @@ async function loadData() {
   currentStreak.value = computeMaxStreak(records)
 
   // 已达成成就
-  const achieved = await db.settings.get(ACHIEVED_KEY)
-  achievedSet.value = new Set<string>((achieved?.value as string[]) || [])
+  const achieved = await getSettings(ACHIEVED_KEY)
+  achievedSet.value = new Set<string>((achieved as string[]) || [])
 
   // 已领取成就
-  const claimed = await db.settings.get(CLAIMED_KEY)
-  claimedSet.value = new Set<string>((claimed?.value as string[]) || [])
+  const claimed = await getSettings(CLAIMED_KEY)
+  claimedSet.value = new Set<string>((claimed as string[]) || [])
 }
 
 // 切换学生时重新加载
@@ -109,18 +111,16 @@ function getStatus(def: AchievementDef): AchievementStatus {
 async function handleClaim(def: AchievementDef) {
   try {
     // 标记为已领取
-    const claimed = await db.settings.get(CLAIMED_KEY)
-    const list: string[] = (claimed?.value as string[]) || []
+    const claimed = await getSettings(CLAIMED_KEY)
+    const list: string[] = (claimed as string[]) || []
     list.push(def.key)
-    await db.settings.put({ key: CLAIMED_KEY, value: list })
+    await updateSettings(CLAIMED_KEY, list)
     claimedSet.value.add(def.key)
 
     // 给第一个孩子加星星
-    const students = await db.students.toArray()
-    if (students.length > 0) {
-      await db.students.update(students[0].id, {
-        stars: (students[0].stars ?? 0) + def.reward
-      })
+    const allStudents = await getStudents()
+    if (allStudents.length > 0) {
+      await addStudentStars(allStudents[0].id, def.reward)
     }
 
     toast.success(`领取成功！获得 ✨${def.reward} 星`)

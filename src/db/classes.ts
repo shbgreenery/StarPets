@@ -80,6 +80,15 @@ export async function updateStudent(id: string, name: string): Promise<void> {
   await db.students.update(id, { name })
 }
 
+export async function addStudentStars(id: string, count: number): Promise<void> {
+  await db.transaction('rw', [db.students], async () => {
+    const s = await db.students.get(id)
+    if (s) {
+      await db.students.update(id, { stars: (s.stars ?? 0) + count })
+    }
+  })
+}
+
 export async function deleteStudent(id: string): Promise<void> {
   await db.transaction('rw', [db.students, db.evaluation_records, db.badges], async () => {
     await db.evaluation_records.where('student_id').equals(id).delete()

@@ -1,25 +1,6 @@
-// 宝贝
-export interface Student {
-  id: string
-  name: string
-  total_points: number
-  pet_type: string | null
-  pet_name?: string | null
-  pet_level: number
-  pet_exp: number
-  // 生存指标(0-100)与星星货币
-  hunger: number
-  cleanliness: number
-  happiness: number
-  stars: number
-  last_decay_at: number
-  // 装扮装饰:背景/特效单槽;挂饰可同时戴多个(≤PENDANT_LIMIT);deco_owned 为已购买收藏
-  deco_bg: string | null
-  deco_fx: string | null
-  deco_pendants: string[]
-  deco_owned: string[]
-  created_at?: number
-}
+// 宝贝（基于 db 层 StudentRow，保持一致）
+import type { StudentRow } from '@/db/index'
+export type Student = StudentRow
 
 // 评价规则
 export interface Rule {

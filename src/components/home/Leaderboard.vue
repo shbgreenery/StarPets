@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { db } from '@/db/index'
+import { getEvaluationsSince } from '@/db/evaluations'
 import type { Student } from '@/types'
 
 const props = defineProps<{
@@ -45,10 +45,7 @@ function getTimeRange(tab: Tab): number {
 // 加载排行榜数据
 async function loadLeaderboard() {
   const since = getTimeRange(activeTab.value)
-  const allRecords = await db.evaluation_records
-    .where('timestamp')
-    .aboveOrEqual(since)
-    .toArray()
+  const allRecords = await getEvaluationsSince(since)
 
   // 按学生分组统计星星
   const starMap = new Map<string, number>()
