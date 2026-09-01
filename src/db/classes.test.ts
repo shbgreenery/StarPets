@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { db, initDb, clearAll } from './index'
 import { getStudents, addStudent, deleteStudent, updateStudentPet, updateStudentPetName, buyShopItem, buyDecoration, wearDecoration, takeOffDecoration } from './classes'
 import { SHOP_ITEMS } from '@/data/shop'
-import { DECOR_ITEMS } from '@/data/decorations'
+import { DECOR_ITEMS, isInPurchaseWindow, isExpired } from '@/data/decorations'
 
 beforeEach(async () => {
   await db.open()
@@ -359,5 +359,39 @@ describe('装扮装饰', () => {
     const st = await db.students.get(s.id)
     expect(st?.stars).toBe(40)
     expect(st?.deco_fx).toBeNull()
+  })
+
+  // ---- 限时装饰 ----
+  const lantern = DECOR_ITEMS.find(i => i.id === 'holiday-midautumn-lantern')!
+
+  it('限时装饰购买记入过期时间', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 30 })
+    await buyDecoration(s.id, lantern)
+    const st = await db.students.get(s.id)
+    expect(st?.deco_owned).toContain('holiday-midautumn-lantern')
+    expect(st?.deco_expiry['holiday-midautumn-lantern']).toBeGreaterThan(Date.now())
+  })
+
+  it('isInPurchaseWindow 判断限时装饰是否在购买窗口', () => {
+    expect(isInPurchaseWindow(lantern)).toBe(true)
+  })
+
+  it('isExpired 判断限时装饰是否已过期', () => {
+    expect(isExpired(lantern)).toBe(false)
+  })
+
+  it('过期装饰从拥有和佩戴中移除', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { stars: 30, deco_owned: ['holiday-midautumn-lantern'], deco_expiry: { 'holiday-midautumn-lantern': Date.now() - 1 } })
+    const [st] = await getStudents()
+    expect(st.deco_owned).not.toContain('holiday-midautumn-lantern')
+    expect(st.deco_expiry['holiday-midautumn-lantern']).toBeUndefined()
+  })
+
+  it('过期装饰不可佩戴(normalize 已移除)', async () => {
+    const s = await addStudent('张三')
+    await db.students.update(s.id, { deco_owned: ['holiday-midautumn-lantern'], deco_expiry: { 'holiday-midautumn-lantern': Date.now() - 1 } })
+    await expect(wearDecoration(s.id, lantern)).rejects.toThrow('还没拥有这件装饰')
   })
 })

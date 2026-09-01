@@ -9,6 +9,7 @@ export interface StudentRow {
   hunger: number; cleanliness: number; happiness: number;
   stars: number; last_decay_at: number;
   deco_bg: string | null; deco_fx: string | null; deco_pendants: string[]; deco_owned: string[];
+  deco_expiry: Record<string, number>;  // 限时装饰过期时间戳 { id: expiresAt }
   created_at: number
 }
 export interface BadgeRow { id: string; student_id: string; pet_type: string; earned_at: number }

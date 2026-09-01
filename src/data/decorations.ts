@@ -6,6 +6,10 @@ export interface DecorationItem {
   price: number
   bgClass?: string        // slot === 'bg' 时:宠物显示区渐变 class
   emoji?: string          // slot === 'pendant'/'fx' 时:挂饰图标 / 特效粒子
+  // 限时装饰:购买窗口 + 显示期限
+  availableFrom?: number  // 购买窗口开始时间戳(未到不显示)
+  availableTo?: number    // 购买窗口结束时间戳(过期下架)
+  expiresAt?: number      // 显示到期时间戳(统一过期,自动移除)
 }
 
 export const DECOR_ITEMS: DecorationItem[] = [
@@ -27,6 +31,20 @@ export const DECOR_ITEMS: DecorationItem[] = [
   { id: 'fx-petals', name: '樱花飘落', slot: 'fx', price: 50, emoji: '🌸' },
   { id: 'fx-bubbles', name: '梦幻泡泡', slot: 'fx', price: 50, emoji: '🫧' },
   { id: 'fx-fireflies', name: '萤火点点', slot: 'fx', price: 55, emoji: '💫' },
+
+  // ---- 中秋限定(购买窗口:9月1日~9月21日, 显示期限:10月21日统一过期)----
+  { id: 'holiday-midautumn-lantern', name: '玉兔宫灯', slot: 'pendant', price: 15, emoji: '🏮',
+    availableFrom: new Date(2026, 8, 1).getTime(),
+    availableTo: new Date(2026, 8, 21, 23, 59, 59).getTime(),
+    expiresAt: new Date(2026, 9, 21, 23, 59, 59).getTime() },
+  { id: 'holiday-midautumn-osmanthus', name: '月桂飘香', slot: 'pendant', price: 10, emoji: '🌼',
+    availableFrom: new Date(2026, 8, 1).getTime(),
+    availableTo: new Date(2026, 8, 21, 23, 59, 59).getTime(),
+    expiresAt: new Date(2026, 9, 21, 23, 59, 59).getTime() },
+  { id: 'holiday-midautumn-moonlight', name: '月光如水', slot: 'fx', price: 45, emoji: '🌙',
+    availableFrom: new Date(2026, 8, 1).getTime(),
+    availableTo: new Date(2026, 8, 21, 23, 59, 59).getTime(),
+    expiresAt: new Date(2026, 9, 21, 23, 59, 59).getTime() },
 ]
 
 // 商城分组(补给三组之后追加)
@@ -64,8 +82,24 @@ export const FX_CONFIG: Record<string, FxStyle> = {
   'fx-sparkles': { count: 14, anim: 'sparkle' },
   'fx-bubbles': { count: 10, anim: 'rise' },
   'fx-fireflies': { count: 12, anim: 'rise' },
+  'holiday-midautumn-moonlight': { count: 10, anim: 'fall' },
 }
 export function getFxStyle(id: string | null): FxStyle | null {
   if (!id) return null
   return FX_CONFIG[id] || null
+}
+
+// 限时装饰:当前是否在购买窗口内
+export function isInPurchaseWindow(item: DecorationItem): boolean {
+  if (!item.availableFrom && !item.availableTo) return true
+  const now = Date.now()
+  if (item.availableFrom && now < item.availableFrom) return false
+  if (item.availableTo && now > item.availableTo) return false
+  return true
+}
+
+// 限时装饰:是否已过期(显示期限已到)
+export function isExpired(item: DecorationItem): boolean {
+  if (!item.expiresAt) return false
+  return Date.now() >= item.expiresAt
 }

@@ -3,7 +3,7 @@
 import { ref, computed } from 'vue'
 import { SHOP_ITEMS, SHOP_GROUPS } from '@/data/shop'
 import type { ShopItem } from '@/data/shop'
-import { DECOR_ITEMS, DECOR_GROUPS, getDecorBgClass, PENDANT_LIMIT } from '@/data/decorations'
+import { DECOR_ITEMS, DECOR_GROUPS, getDecorBgClass, PENDANT_LIMIT, isInPurchaseWindow, isExpired } from '@/data/decorations'
 import type { DecorationItem, DecorAction } from '@/data/decorations'
 import type { Student } from '@/types'
 
@@ -29,11 +29,20 @@ const activeDecorGroup = computed(() => DECOR_GROUPS.find(g => g.slot === active
 
 // 当前分类的商品
 const supplyItems = computed(() => SHOP_ITEMS.filter(i => i.target === activeTab.value))
-const decorItems = computed(() => DECOR_ITEMS.filter(i => i.slot === activeTab.value))
 
-// 是否已拥有该装饰
+// 装饰:限时商品按购买窗口过滤(未拥有的只在窗口内显示,已拥有的始终显示)
+const decorItems = computed(() => DECOR_ITEMS.filter(i => {
+  if (i.slot !== activeTab.value) return false
+  if (isOwned(i)) return true
+  return isInPurchaseWindow(i)
+}))
+
+// 是否已拥有该装饰(含过期检查)
 function isOwned(item: DecorationItem): boolean {
-  return !!props.student && props.student.deco_owned.includes(item.id)
+  if (!props.student) return false
+  // 限时装饰:已过期不算拥有
+  if (isExpired(item)) return false
+  return props.student.deco_owned.includes(item.id)
 }
 
 // 是否正在佩戴(背景/特效单槽,挂饰在数组中)

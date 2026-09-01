@@ -13,7 +13,7 @@ export const DECAY_INTERVAL = 30 * 60 * 1000
 function normalize(s: StudentRow, now: number): StudentRow {
   // v4 残留的 deco_pendant 单值字段(类型上已移除,运行时可能存在于旧行)
   const legacy = s as StudentRow & { deco_pendant?: string | null }
-  return {
+  const result: StudentRow = {
     ...s,
     hunger: s.hunger ?? 80,
     cleanliness: s.cleanliness ?? 80,
@@ -26,8 +26,21 @@ function normalize(s: StudentRow, now: number): StudentRow {
     deco_pendants: Array.isArray(s.deco_pendants) ? s.deco_pendants : (legacy.deco_pendant ? [legacy.deco_pendant] : []),
     deco_owned: Array.isArray(s.deco_owned)
       ? s.deco_owned
-      : (s.deco_bg ? [s.deco_bg] : []).concat(legacy.deco_pendant ? [legacy.deco_pendant] : [])
+      : (s.deco_bg ? [s.deco_bg] : []).concat(legacy.deco_pendant ? [legacy.deco_pendant] : []),
+    deco_expiry: s.deco_expiry ?? {},
   }
+
+  // 限时装饰过期检查:移除过期装饰(从拥有和佩戴中)
+  const expired = Object.keys(result.deco_expiry).filter(id => now >= result.deco_expiry[id])
+  if (expired.length > 0) {
+    result.deco_owned = result.deco_owned.filter(id => !expired.includes(id))
+    if (result.deco_bg && expired.includes(result.deco_bg)) result.deco_bg = null
+    if (result.deco_fx && expired.includes(result.deco_fx)) result.deco_fx = null
+    result.deco_pendants = result.deco_pendants.filter(id => !expired.includes(id))
+    for (const id of expired) delete result.deco_expiry[id]
+  }
+
+  return result
 }
 
 // 每个时间步:三指标各降1(下限0)。成长值不再随时间增长,只靠喂养(商城购买)获得
@@ -69,7 +82,7 @@ export async function addStudent(name: string): Promise<StudentRow> {
     id: crypto.randomUUID(), name,
     total_points: 0, pet_type: null, pet_name: null, pet_level: 1, pet_exp: 0,
     hunger: 80, cleanliness: 80, happiness: 80, stars: 0, last_decay_at: now,
-    deco_bg: null, deco_fx: null, deco_pendants: [], deco_owned: [],
+    deco_bg: null, deco_fx: null, deco_pendants: [], deco_owned: [], deco_expiry: {},
     created_at: now
   }
   await db.students.add(s)
@@ -158,6 +171,10 @@ export async function buyDecoration(studentId: string, item: DecorationItem): Pr
 
     const owned = norm.deco_owned.includes(item.id) ? norm.deco_owned : [...norm.deco_owned, item.id]
     const patch: Partial<StudentRow> = { stars: norm.stars - item.price, deco_owned: owned }
+    // 限时装饰:记录过期时间
+    if (item.expiresAt) {
+      patch.deco_expiry = { ...norm.deco_expiry, [item.id]: item.expiresAt }
+    }
     if (item.slot === 'bg') {
       patch.deco_bg = item.id
     } else if (item.slot === 'fx') {
@@ -178,6 +195,7 @@ export async function wearDecoration(studentId: string, item: DecorationItem): P
     const s = await db.students.get(studentId)
     if (!s) throw new Error('宝贝不存在')
     const norm = normalize(s, Date.now())
+    // normalize 已清除过期装饰,此处只需检查是否还有拥有权
     if (!norm.deco_owned.includes(item.id)) throw new Error('还没拥有这件装饰')
 
     const patch: Partial<StudentRow> = {}
