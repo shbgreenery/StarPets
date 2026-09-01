@@ -143,8 +143,13 @@ function wearLabel(item: DecorationItem): string {
         <div
           v-for="item in decorItems"
           :key="item.id"
-          class="bg-gray-50 rounded-2xl p-3 border border-gray-100"
+          class="bg-gray-50 rounded-2xl p-3 border border-gray-100 relative"
         >
+          <!-- 限时标签 -->
+          <span
+            v-if="item.availableTo"
+            class="absolute top-2 right-2 bg-gradient-to-r from-rose-400 to-pink-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm"
+          >限时</span>
           <!-- 背景:渐变预览;挂饰/特效:emoji -->
           <div
             v-if="activeDecorGroup.slot === 'bg'"

@@ -1,7 +1,8 @@
 {
-  "name": "class-pet-garden",
+  "name": "star-pets",
   "version": "1.0.0",
-  "description": "班级积分管理 + 电子宠物养成系统",
+  "type": "module",
+  "description": "成长伙伴 - 家庭亲子激励工具，电子宠物养成 + 行为评价",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",

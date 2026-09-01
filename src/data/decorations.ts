@@ -45,6 +45,10 @@ export const DECOR_ITEMS: DecorationItem[] = [
     availableFrom: new Date(2026, 8, 1).getTime(),
     availableTo: new Date(2026, 8, 21, 23, 59, 59).getTime(),
     expiresAt: new Date(2026, 9, 21, 23, 59, 59).getTime() },
+  { id: 'holiday-midautumn-night', name: '月夜星空', slot: 'bg', price: 35, bgClass: 'bg-gradient-to-br from-indigo-900 via-purple-800 to-slate-900',
+    availableFrom: new Date(2026, 8, 1).getTime(),
+    availableTo: new Date(2026, 8, 21, 23, 59, 59).getTime(),
+    expiresAt: new Date(2026, 9, 21, 23, 59, 59).getTime() },
 ]
 
 // 商城分组(补给三组之后追加)
